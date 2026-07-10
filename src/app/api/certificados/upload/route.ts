@@ -5,7 +5,7 @@ import { jsonError } from "@/lib/api/errors";
 import { calculateCertificateStatus } from "@/lib/certificados/status";
 import { requireApiUser } from "@/lib/auth/api";
 import { encryptSecret } from "@/lib/crypto/secrets";
-import { rebuildNotificationSchedule, SETTINGS_ID } from "@/lib/notifications/engine";
+import { rebuildNotificationSchedule, runDueNotificationJob, SETTINGS_ID } from "@/lib/notifications/engine";
 import { parsePfx, PfxParseError } from "@/lib/pfx/parse";
 import { CERTIFICATES_BUCKET, getCertificateStoragePath } from "@/lib/storage/certificates";
 import {
@@ -301,6 +301,10 @@ export async function POST(request: NextRequest) {
     triggeredBy: "system",
     userId: auth.user.id,
   });
+  const notificacaoDia = await runDueNotificationJob({
+    triggeredBy: "system",
+    userId: auth.user.id,
+  });
 
   return NextResponse.json(
     {
@@ -313,6 +317,7 @@ export async function POST(request: NextRequest) {
         status,
       },
       notificacao_rebuild: notificacaoRebuild,
+      notificacao_dia: notificacaoDia,
     },
     { status: 201 },
   );

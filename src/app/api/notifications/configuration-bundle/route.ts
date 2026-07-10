@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { jsonError } from "@/lib/api/errors";
 import { requireApiUser } from "@/lib/auth/api";
-import { SETTINGS_ID, rebuildNotificationSchedule, validateTemplateContent } from "@/lib/notifications/engine";
+import { SETTINGS_ID, rebuildNotificationSchedule, runDueNotificationJob, validateTemplateContent } from "@/lib/notifications/engine";
 import { notificationSettingsSchema, templateUpdateSchema } from "@/lib/notifications/validation";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -115,10 +115,15 @@ export async function PUT(request: NextRequest) {
     triggeredBy: "system",
     userId: auth.user.id,
   });
+  const dueNotificationJob = await runDueNotificationJob({
+    triggeredBy: "system",
+    userId: auth.user.id,
+  });
 
   return NextResponse.json({
     settings,
     templates: updatedTemplates,
     notificacao_rebuild: notificationRebuild,
+    notificacao_dia: dueNotificationJob,
   });
 }

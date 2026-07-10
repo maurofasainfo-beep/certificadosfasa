@@ -1570,7 +1570,7 @@ begin
       device_id = target_device.id,
       reservation_id = generated_reservation_id,
       reservation_token_hash = encode(
-        digest('qwep-reservation-token:' || generated_reservation_token, 'sha256'),
+        extensions.digest('qwep-reservation-token:' || generated_reservation_token, 'sha256'),
         'hex'
       ),
       reserved_at = now(),

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { requireApiUser } from "@/lib/auth/api";
-import { rebuildNotificationSchedule } from "@/lib/notifications/engine";
+import { rebuildNotificationSchedule, runDueNotificationJob } from "@/lib/notifications/engine";
 
 export const runtime = "nodejs";
 
@@ -16,6 +16,19 @@ export async function POST() {
     triggeredBy: "manual",
     userId: auth.user.id,
   });
+  const dueResult = await runDueNotificationJob({
+    triggeredBy: "manual",
+    userId: auth.user.id,
+  });
 
-  return NextResponse.json(result, { status: result.errors.length ? 207 : 200 });
+  const errors = [...result.errors, ...dueResult.errors];
+
+  return NextResponse.json(
+    {
+      ...result,
+      notificacao_dia: dueResult,
+      errors,
+    },
+    { status: errors.length ? 207 : 200 },
+  );
 }
