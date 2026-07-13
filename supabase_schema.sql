@@ -377,6 +377,8 @@ as $$
 declare
   v_cliente_id uuid;
   v_certificado_id uuid;
+  v_existing_latest_vencimento date;
+  v_insert_status public.certificado_status := p_status;
 begin
   if p_cnpj is null or p_cnpj !~ '^[0-9]{14}$' then
     raise exception 'cnpj_invalido';
@@ -411,10 +413,19 @@ begin
       updated_at = now()
   returning id into v_cliente_id;
 
-  update public.certificados
-  set status = 'substituido', updated_at = now()
-  where cliente_id = v_cliente_id
-    and status in ('ativo', 'vencendo', 'vencido');
+  select max(data_vencimento)
+  into v_existing_latest_vencimento
+  from public.certificados
+  where cliente_id = v_cliente_id;
+
+  if v_existing_latest_vencimento is null or p_data_vencimento >= v_existing_latest_vencimento then
+    update public.certificados
+    set status = 'substituido', updated_at = now()
+    where cliente_id = v_cliente_id
+      and status <> 'substituido';
+  else
+    v_insert_status := 'substituido';
+  end if;
 
   insert into public.certificados (
     cliente_id,
@@ -440,7 +451,7 @@ begin
     p_senha_auth_tag,
     p_data_emissao,
     p_data_vencimento,
-    p_status,
+    v_insert_status,
     p_storage_path,
     p_nome_arquivo_original,
     p_hash_arquivo,

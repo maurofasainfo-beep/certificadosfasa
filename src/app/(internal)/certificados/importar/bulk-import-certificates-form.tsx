@@ -39,6 +39,9 @@ type DirectoryFile = File & {
   webkitRelativePath?: string;
 };
 
+const MAX_CERTIFICATES_PER_BATCH = 5;
+const MAX_FILES_PER_BATCH = 20;
+
 const directoryInputProps = {
   webkitdirectory: "",
   directory: "",
@@ -53,6 +56,188 @@ function getRelativePath(file: File) {
 
 function getExtension(file: File) {
   return file.name.split(".").pop()?.toLowerCase() ?? "";
+}
+
+function normalizeRelativePath(value: string) {
+  return value
+    .replace(/\\/g, "/")
+    .split("/")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join("/");
+}
+
+function getPathDepth(file: File) {
+  return normalizeRelativePath(getRelativePath(file)).split("/").filter(Boolean).length;
+}
+
+function getFolder(file: File) {
+  const parts = normalizeRelativePath(getRelativePath(file)).split("/");
+  parts.pop();
+  return parts.join("/") || "raiz";
+}
+
+function getAcceptedFiles(files: File[]) {
+  const pfxFiles = files.filter((file) => getExtension(file) === "pfx");
+  const hasClientFolderShape = pfxFiles.some((file) => getPathDepth(file) === 3);
+  const acceptedDepth = hasClientFolderShape ? 3 : 2;
+
+  return files.filter((file) => {
+    const extension = getExtension(file);
+    return (extension === "pfx" || extension === "txt") && getPathDepth(file) === acceptedDepth;
+  });
+}
+
+function createImportBatches(files: File[]) {
+  const acceptedFiles = getAcceptedFiles(files);
+  const groups = new Map<string, File[]>();
+
+  for (const file of acceptedFiles) {
+    const current = groups.get(getFolder(file)) ?? [];
+    current.push(file);
+    groups.set(getFolder(file), current);
+  }
+
+  const batches: File[][] = [];
+  let currentBatch: File[] = [];
+  let currentPfxCount = 0;
+
+  for (const [, groupFiles] of Array.from(groups.entries()).sort(([left], [right]) => left.localeCompare(right, "pt-BR"))) {
+    const groupPfxCount = groupFiles.filter((file) => getExtension(file) === "pfx").length;
+
+    if (groupPfxCount === 0) {
+      continue;
+    }
+
+    const wouldExceed =
+      currentBatch.length > 0 &&
+      (currentPfxCount + groupPfxCount > MAX_CERTIFICATES_PER_BATCH ||
+        currentBatch.length + groupFiles.length > MAX_FILES_PER_BATCH);
+
+    if (wouldExceed) {
+      batches.push(currentBatch);
+      currentBatch = [];
+      currentPfxCount = 0;
+    }
+
+    currentBatch.push(...groupFiles);
+    currentPfxCount += groupPfxCount;
+  }
+
+  if (currentBatch.length > 0) {
+    batches.push(currentBatch);
+  }
+
+  return batches;
+}
+
+function getPfxFiles(files: File[]) {
+  return files.filter((file) => getExtension(file) === "pfx");
+}
+
+function splitFilesByFolder(files: File[]) {
+  const groups = new Map<string, File[]>();
+
+  for (const file of files) {
+    const current = groups.get(getFolder(file)) ?? [];
+    current.push(file);
+    groups.set(getFolder(file), current);
+  }
+
+  return Array.from(groups.entries())
+    .sort(([left], [right]) => left.localeCompare(right, "pt-BR"))
+    .map(([, groupFiles]) => groupFiles);
+}
+
+function mergeImportResponses(current: ImportResponse | null, next: ImportResponse): ImportResponse {
+  return {
+    resumo: {
+      certificados_encontrados: (current?.resumo.certificados_encontrados ?? 0) + next.resumo.certificados_encontrados,
+      importados: (current?.resumo.importados ?? 0) + next.resumo.importados,
+      ignorados: (current?.resumo.ignorados ?? 0) + next.resumo.ignorados,
+      falhas: (current?.resumo.falhas ?? 0) + next.resumo.falhas,
+    },
+    importados: [...(current?.importados ?? []), ...next.importados],
+    ignorados: [...(current?.ignorados ?? []), ...next.ignorados],
+    falhas: [...(current?.falhas ?? []), ...next.falhas],
+  };
+}
+
+function createFailedBatchResponse(batchFiles: File[], message: string): ImportResponse {
+  const pfxFiles = getPfxFiles(batchFiles);
+
+  return {
+    resumo: {
+      certificados_encontrados: pfxFiles.length,
+      importados: 0,
+      ignorados: 0,
+      falhas: pfxFiles.length,
+    },
+    importados: [],
+    ignorados: [],
+    falhas: pfxFiles.map((file) => ({
+      pasta: getFolder(file),
+      arquivo: file.name,
+      mensagem: message,
+    })),
+  };
+}
+
+async function postImportBatch(batchFiles: File[]) {
+  const formData = new FormData();
+  const manifest = batchFiles.map((file, index) => {
+    const field = `arquivo_${index}`;
+    const relativePath = getRelativePath(file);
+    formData.append(field, file, relativePath);
+
+    return {
+      field,
+      name: file.name,
+      relativePath,
+      size: file.size,
+    };
+  });
+
+  formData.set("manifest", JSON.stringify(manifest));
+  formData.set("run_notifications", "false");
+
+  const response = await fetch("/api/certificados/importar", {
+    method: "POST",
+    body: formData,
+  });
+  const payload = (await response.json()) as ImportResponse & ImportErrorResponse;
+
+  if (!response.ok) {
+    throw new Error(payload.error?.message ?? "Nao foi possivel importar este lote.");
+  }
+
+  return payload;
+}
+
+async function importBatchWithFallback(batchFiles: File[]) {
+  try {
+    return await postImportBatch(batchFiles);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Falha de comunicacao com o servidor.";
+    const folderBatches = splitFilesByFolder(batchFiles);
+
+    if (folderBatches.length <= 1) {
+      return createFailedBatchResponse(batchFiles, message);
+    }
+
+    let mergedResult: ImportResponse | null = null;
+
+    for (const folderBatch of folderBatches) {
+      try {
+        mergedResult = mergeImportResponses(mergedResult, await postImportBatch(folderBatch));
+      } catch (folderError) {
+        const folderMessage = folderError instanceof Error ? folderError.message : message;
+        mergedResult = mergeImportResponses(mergedResult, createFailedBatchResponse(folderBatch, folderMessage));
+      }
+    }
+
+    return mergedResult ?? createFailedBatchResponse(batchFiles, message);
+  }
 }
 
 function ImportResultList({ title, items, tone }: { title: string; items: ImportItem[]; tone: "success" | "warning" | "danger" }) {
@@ -94,24 +279,24 @@ export function BulkImportCertificatesForm() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ImportResponse | null>(null);
+  const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
 
   const fileSummary = useMemo(() => {
-    const pfx = files.filter((file) => getExtension(file) === "pfx").length;
-    const txt = files.filter((file) => getExtension(file) === "txt").length;
+    const acceptedFiles = getAcceptedFiles(files);
+    const pfx = acceptedFiles.filter((file) => getExtension(file) === "pfx").length;
+    const txt = acceptedFiles.filter((file) => getExtension(file) === "txt").length;
     const folders = new Set(
-      files.map((file) => {
-        const parts = getRelativePath(file).replace(/\\/g, "/").split("/");
-        parts.pop();
-        return parts.join("/") || "raiz";
-      }),
+      acceptedFiles.map((file) => getFolder(file)),
     ).size;
+    const batches = createImportBatches(files).length;
 
-    return { pfx, txt, folders };
+    return { pfx, txt, folders, batches, ignored: files.length - acceptedFiles.length };
   }, [files]);
 
   function handleFilesChange(event: ChangeEvent<HTMLInputElement>) {
     setError(null);
     setResult(null);
+    setProgress(null);
     setFiles(Array.from(event.target.files ?? []));
   }
 
@@ -125,42 +310,38 @@ export function BulkImportCertificatesForm() {
       return;
     }
 
-    const formData = new FormData();
-    const manifest = files.map((file, index) => {
-      const field = `arquivo_${index}`;
-      const relativePath = getRelativePath(file);
-      formData.append(field, file, relativePath);
+    const batches = createImportBatches(files);
 
-      return {
-        field,
-        name: file.name,
-        relativePath,
-        size: file.size,
-      };
-    });
+    if (batches.length === 0) {
+      setError("Nenhum certificado .pfx com arquivo .txt direto na pasta do cliente foi encontrado.");
+      return;
+    }
 
-    formData.set("manifest", JSON.stringify(manifest));
+    let mergedResult: ImportResponse | null = null;
     setPending(true);
+    setProgress({ current: 0, total: batches.length });
 
     try {
-      const response = await fetch("/api/certificados/importar", {
-        method: "POST",
-        body: formData,
-      });
-      const payload = (await response.json()) as ImportResponse & ImportErrorResponse;
-
-      if (!response.ok) {
-        setError(payload.error?.message ?? "Nao foi possivel importar os certificados.");
-        setPending(false);
-        return;
+      for (const [batchIndex, batchFiles] of batches.entries()) {
+        const payload = await importBatchWithFallback(batchFiles);
+        mergedResult = mergeImportResponses(mergedResult, payload);
+        setProgress({ current: batchIndex + 1, total: batches.length });
       }
 
-      setResult(payload);
+      if ((mergedResult?.resumo.importados ?? 0) > 0) {
+        await fetch("/api/notifications/check-expiring", {
+          method: "POST",
+        });
+      }
+
+      setResult(mergedResult);
       setPending(false);
+      setProgress(null);
       router.refresh();
     } catch {
       setError("Falha de comunicacao com o servidor.");
       setPending(false);
+      setProgress(null);
     }
   }
 
@@ -214,7 +395,7 @@ export function BulkImportCertificatesForm() {
         </label>
 
         {files.length > 0 ? (
-          <div className="grid gap-2 rounded-3xl border border-blue-100 bg-white px-4 py-3 text-sm sm:grid-cols-3">
+          <div className="grid gap-2 rounded-3xl border border-blue-100 bg-white px-4 py-3 text-sm sm:grid-cols-5">
             <div>
               <p className="text-xs text-slate-500">Pastas detectadas</p>
               <p className="text-lg font-semibold text-slate-950">{fileSummary.folders}</p>
@@ -227,6 +408,20 @@ export function BulkImportCertificatesForm() {
               <p className="text-xs text-slate-500">Arquivos de senha</p>
               <p className="text-lg font-semibold text-slate-950">{fileSummary.txt}</p>
             </div>
+            <div>
+              <p className="text-xs text-slate-500">Lotes de envio</p>
+              <p className="text-lg font-semibold text-slate-950">{fileSummary.batches}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500">Ignorados</p>
+              <p className="text-lg font-semibold text-slate-950">{fileSummary.ignored}</p>
+            </div>
+          </div>
+        ) : null}
+
+        {progress ? (
+          <div className="rounded-2xl border border-blue-100 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-800">
+            Processando lote {progress.current} de {progress.total}. Mantenha esta tela aberta ate finalizar.
           </div>
         ) : null}
 

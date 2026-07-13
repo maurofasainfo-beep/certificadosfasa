@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   Bar,
   BarChart as RechartsBarChart,
@@ -27,6 +28,31 @@ type TooltipPayload = {
     color?: string;
   };
 };
+
+function normalizeStatusName(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
+}
+
+function getCertificateStatusHref(name: string) {
+  const normalized = normalizeStatusName(name);
+
+  if (normalized === "validos" || normalized.includes("lidos")) {
+    return "/certificados?status=ativo";
+  }
+
+  if (normalized === "vencendo") {
+    return "/certificados?status=vencendo";
+  }
+
+  if (normalized === "vencidos") {
+    return "/certificados?status=vencido";
+  }
+
+  return null;
+}
 
 function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: TooltipPayload[]; label?: string }) {
   if (!active || !payload?.length) {
@@ -82,9 +108,9 @@ export function DonutChart({ data, total }: { data: DonutData[]; total: number }
       <div className="grid gap-3">
         {data.map((item) => {
           const percent = Math.round((item.value / safeTotal) * 100);
-
-          return (
-            <div key={item.name} className="flex items-center justify-between gap-3 rounded-2xl border border-blue-100/70 bg-white px-3 py-2 shadow-sm shadow-blue-950/5 transition duration-150 hover:bg-blue-50/70">
+          const href = getCertificateStatusHref(item.name);
+          const content = (
+            <>
               <div className="flex items-center gap-2">
                 <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
                 <span className="text-sm font-medium text-slate-700">{item.name}</span>
@@ -92,6 +118,22 @@ export function DonutChart({ data, total }: { data: DonutData[]; total: number }
               <span className="text-sm font-semibold text-slate-950">
                 {percent}% <span className="text-slate-400">({item.value})</span>
               </span>
+            </>
+          );
+
+          return href ? (
+            <Link
+              key={item.name}
+              href={href}
+              className="flex items-center justify-between gap-3 rounded-2xl border border-blue-100/70 bg-white px-3 py-2 shadow-sm shadow-blue-950/5 outline-none transition duration-150 hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50/70 focus-visible:ring-4 focus-visible:ring-blue-100"
+              title={`Ver certificados ${item.name.toLowerCase()}`}
+              aria-label={`Ver certificados ${item.name.toLowerCase()}`}
+            >
+              {content}
+            </Link>
+          ) : (
+            <div key={item.name} className="flex items-center justify-between gap-3 rounded-2xl border border-blue-100/70 bg-white px-3 py-2 shadow-sm shadow-blue-950/5 transition duration-150 hover:bg-blue-50/70">
+              {content}
             </div>
           );
         })}

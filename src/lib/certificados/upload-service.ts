@@ -319,6 +319,13 @@ export async function registerCertificateUpload({
     fail("Falha ao registrar o certificado no banco de dados.", 500, "registro_certificado");
   }
 
+  const { data: registeredCertificate } = await admin
+    .from("certificados")
+    .select("status")
+    .eq("id", certificadoId)
+    .maybeSingle();
+  const savedStatus = registeredCertificate?.status ?? status;
+
   await markStorageReconciliationJob({
     admin,
     jobId: reconciliationJobId,
@@ -338,7 +345,7 @@ export async function registerCertificateUpload({
     nome_titular: parsedPfx.nomeTitular,
     data_emissao: parsedPfx.dataEmissao,
     data_vencimento: parsedPfx.dataVencimento,
-    status,
+    status: savedStatus,
     hash_arquivo: hashArquivo,
   };
 }

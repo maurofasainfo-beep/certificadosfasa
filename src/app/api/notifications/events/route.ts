@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { jsonError } from "@/lib/api/errors";
 import { requireApiUser } from "@/lib/auth/api";
+import { buildNotificationEventSearchFilter } from "@/lib/notifications/event-search";
 import { createPaginationMeta, parsePagination } from "@/lib/pagination";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { NotificationEventStatus } from "@/lib/supabase/database.types";
@@ -104,6 +105,7 @@ export async function GET(request: NextRequest) {
   const search = cleanSearch(url.searchParams.get("q"));
   const pagination = parsePagination(url.searchParams);
   const admin = createSupabaseAdminClient();
+  const searchFilter = search ? await buildNotificationEventSearchFilter(admin, search) : null;
   let query = admin
     .from("notification_events")
     .select(
@@ -131,11 +133,9 @@ export async function GET(request: NextRequest) {
   }
 
   if (search) {
-    const digits = search.replace(/\D/g, "");
-    query =
-      digits.length >= 10
-        ? query.ilike("telefone_destino", `%${digits}%`)
-        : query.or(`mensagem_renderizada.ilike.%${search}%,telefone_destino.ilike.%${digits || search}%`);
+    if (searchFilter) {
+      query = query.or(searchFilter);
+    }
   }
 
   const { data, error, count } = await query;

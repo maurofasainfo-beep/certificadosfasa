@@ -82,15 +82,6 @@ function extractPasswordFromTxtTitle(fileName: string) {
   return withoutSuffix || title;
 }
 
-function extractSingleCnpjFromPath(path: string) {
-  const matches = Array.from(path.matchAll(/\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}|\d{14}/g))
-    .map((match) => match[0]?.replace(/\D/g, "") ?? "")
-    .filter((value) => value.length === 14);
-  const unique = Array.from(new Set(matches));
-
-  return unique.length === 1 ? unique[0] : null;
-}
-
 function choosePasswordFile(files: ImportFile[]) {
   const txtFiles = files
     .filter((item) => item.name.toLowerCase().endsWith(".txt"))
@@ -165,6 +156,7 @@ export async function POST(request: NextRequest) {
   }
 
   const rawManifest = formData.get("manifest");
+  const runNotifications = formData.get("run_notifications") !== "false";
 
   if (typeof rawManifest !== "string") {
     return jsonError("Manifesto da importacao nao enviado.", 400, "manifesto_obrigatorio");
@@ -268,7 +260,7 @@ export async function POST(request: NextRequest) {
           buffer,
           password,
           clientData: {
-            cnpj_manual: extractSingleCnpjFromPath(pfxFile.path),
+            cnpj_manual: null,
             nome_razao_social: stripExtension(pfxFile.name) || stripExtension(getBaseName(folder)) || "Cliente importado",
             email: null,
             telefone: null,
@@ -312,7 +304,7 @@ export async function POST(request: NextRequest) {
   }
 
   const notificacoes =
-    importados.length > 0
+    importados.length > 0 && runNotifications
       ? {
           rebuild: await rebuildNotificationSchedule({ triggeredBy: "system", userId: auth.user.id }),
           dia: await runDueNotificationJob({ triggeredBy: "system", userId: auth.user.id }),

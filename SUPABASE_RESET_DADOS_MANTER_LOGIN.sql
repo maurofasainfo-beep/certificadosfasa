@@ -1,18 +1,28 @@
--- Reset operacional do Fasa Certificados.
--- Mantem logins e permissoes:
+-- Reset completo dos dados operacionais do Fasa Certificados.
+--
+-- MANTEM LOGIN E PERFIS:
 --   - auth.users
 --   - auth.identities
 --   - public.user_profiles
 --
--- Execute no Supabase SQL Editor somente quando quiser limpar os dados
--- do sistema, certificados, avisos e bot WhatsApp.
+-- LIMPA:
+--   - clientes
+--   - certificados
+--   - links publicos de download
+--   - eventos e configuracoes de notificacao
+--   - dispositivos/logs do bot WhatsApp
+--   - logs de auditoria
+--   - jobs de reconciliacao Storage/Postgres
+--   - os objetos PFX do Storage devem ser apagados pela Storage API
+--     usando o script npm run storage:clear-certificados -- --confirm
+--
+-- Execute no SQL Editor do Supabase correto.
+-- Depois de executar, seus usuarios continuam existindo e o admin continua admin
+-- se o registro em public.user_profiles ja estiver correto.
 
 begin;
 
--- O Supabase bloqueia DELETE direto em storage.objects.
--- Para limpar os arquivos PFX antigos, use a Storage API:
--- npm run storage:clear-certificados -- --confirm
-
+-- Limpa dados operacionais sem tocar nos logins.
 truncate table
   public.qwep_seen_nonces,
   public.qwep_rate_limit_buckets,
@@ -31,7 +41,7 @@ truncate table
   public.configuracoes_sistema
 restart identity cascade;
 
--- Recria as configuracoes padrao do sistema antigo de vencimentos.
+-- Configuracao antiga/simples de vencimentos usada por compatibilidade.
 insert into public.configuracoes_sistema (
   id,
   dias_aviso_vencimento
@@ -41,7 +51,7 @@ values (
   array[30,15,7]
 );
 
--- Recria as configuracoes padrao do bot WhatsApp.
+-- Configuracao padrao do modulo de avisos WhatsApp.
 insert into public.notification_settings (
   id,
   enabled,
@@ -71,7 +81,7 @@ values (
   'America/Sao_Paulo'
 );
 
--- Recria os templates padrao.
+-- Templates padrao sem dados sensiveis.
 insert into public.notification_templates (
   type,
   title,
@@ -108,6 +118,13 @@ Favor entrar em contato com os clientes para regularizacao.',
 
 commit;
 
--- Observacao sobre arquivos PFX:
--- Este SQL nao remove objetos do Storage diretamente.
--- Use npm run storage:clear-certificados -- --confirm para limpar o bucket privado.
+-- Conferencia rapida depois de executar:
+-- select count(*) as usuarios from auth.users;
+-- select id, role, active from public.user_profiles;
+-- select count(*) as clientes from public.clientes;
+-- select count(*) as certificados from public.certificados;
+--
+-- Importante:
+-- O Supabase bloqueia DELETE direto em storage.objects.
+-- Para limpar os arquivos PFX antigos, execute no terminal do projeto:
+-- npm run storage:clear-certificados -- --confirm

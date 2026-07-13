@@ -2,7 +2,7 @@ import "server-only";
 
 import forge from "node-forge";
 
-import { extractFirstValidCnpj } from "./cnpj";
+import { extractFirstValidCnpj, extractValidCnpjs } from "./cnpj";
 
 export class PfxParseError extends Error {
   constructor() {
@@ -85,6 +85,26 @@ function getSubjectAttribute(cert: forge.pki.Certificate, shortName: string) {
   return attribute?.value ? String(attribute.value) : null;
 }
 
+function extractHolderCnpj(cert: forge.pki.Certificate) {
+  const commonName = getSubjectAttribute(cert, "CN");
+  const commonNameCnpj = commonName ? extractFirstValidCnpj(commonName) : null;
+
+  if (commonNameCnpj) {
+    return commonNameCnpj;
+  }
+
+  const organizationName = getSubjectAttribute(cert, "O");
+  const organizationCnpj = organizationName ? extractFirstValidCnpj(organizationName) : null;
+
+  if (organizationCnpj) {
+    return organizationCnpj;
+  }
+
+  const fallbackCnpjs = extractValidCnpjs(collectCertificateText(cert));
+
+  return fallbackCnpjs.at(-1) ?? null;
+}
+
 function cleanHolderName(commonName: string | null, organizationName: string | null, cnpj: string | null) {
   const baseName = commonName ?? organizationName ?? "Titular do certificado";
 
@@ -120,9 +140,8 @@ export function parsePfx(buffer: Buffer, password: string): ParsedPfx {
       throw new PfxParseError();
     }
 
-    const certWithCnpj =
-      certificates.find((cert) => extractFirstValidCnpj(collectCertificateText(cert))) ?? certificates[0];
-    const cnpj = extractFirstValidCnpj(collectCertificateText(certWithCnpj));
+    const certWithCnpj = certificates.find((cert) => extractHolderCnpj(cert)) ?? certificates[0];
+    const cnpj = extractHolderCnpj(certWithCnpj);
     const commonName = getSubjectAttribute(certWithCnpj, "CN");
     const organizationName = getSubjectAttribute(certWithCnpj, "O");
 

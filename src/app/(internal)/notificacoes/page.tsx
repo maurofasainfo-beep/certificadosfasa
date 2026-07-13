@@ -11,6 +11,8 @@ import { StatCard } from "@/components/ui/stat-card";
 import { Badge, type Tone } from "@/components/ui/status-badge";
 import { requireInternalUser } from "@/lib/auth/rbac";
 import { daysUntilDate } from "@/lib/certificados/status";
+import { buildNotificationEventSearchFilter } from "@/lib/notifications/event-search";
+import { getTodayDateString, SETTINGS_ID } from "@/lib/notifications/engine";
 import { createPaginationMeta, parsePagination } from "@/lib/pagination";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { NotificationEventStatus } from "@/lib/supabase/database.types";
@@ -110,6 +112,24 @@ function getRecommendedAction(event: { status: string; type: string }) {
   return event.type === "certificate_expired" ? "Contatar clientes vencidos" : "Acompanhar renovação";
 }
 
+async function loadNotificationSummary(admin: ReturnType<typeof createSupabaseAdminClient>, today: string) {
+  const [todayResult, sentResult, failedResult, expiredResult, expiringResult] = await Promise.all([
+    admin.from("notification_events").select("id", { count: "exact", head: true }).eq("send_date", today),
+    admin.from("notification_events").select("id", { count: "exact", head: true }).eq("status", "sent"),
+    admin.from("notification_events").select("id", { count: "exact", head: true }).eq("status", "failed"),
+    admin.from("notification_events").select("id", { count: "exact", head: true }).eq("type", "certificate_expired"),
+    admin.from("notification_events").select("id", { count: "exact", head: true }).eq("type", "certificate_expiring"),
+  ]);
+
+  return {
+    today: todayResult.count ?? 0,
+    sent: sentResult.count ?? 0,
+    failed: failedResult.count ?? 0,
+    expired: expiredResult.count ?? 0,
+    expiring: expiringResult.count ?? 0,
+  };
+}
+
 export default async function NotificacoesPage({ searchParams }: NotificacoesPageProps) {
   const params = await searchParams;
   const user = await requireInternalUser();
@@ -126,9 +146,14 @@ export default async function NotificacoesPage({ searchParams }: NotificacoesPag
   if (params.page) urlParams.set("page", params.page);
   if (params.pageSize) urlParams.set("pageSize", params.pageSize);
   const pagination = parsePagination(urlParams);
-  const today = new Date().toISOString().slice(0, 10);
-  const activeQuickFilter = getActiveQuickFilter({ status, type, sendDate, today });
   const admin = createSupabaseAdminClient();
+  const { data: settings } = await admin
+    .from("notification_settings")
+    .select("timezone")
+    .eq("id", SETTINGS_ID)
+    .maybeSingle();
+  const today = getTodayDateString(settings?.timezone || "America/Sao_Paulo");
+  const activeQuickFilter = getActiveQuickFilter({ status, type, sendDate, today });
   const { data: recipients } = await admin
     .from("notification_recipients")
     .select("id, nome, telefone_normalizado, ativo")
@@ -143,6 +168,7 @@ export default async function NotificacoesPage({ searchParams }: NotificacoesPag
     .order("send_date", { ascending: true })
     .order("created_at", { ascending: false })
     .range(pagination.from, pagination.to);
+  const searchFilter = search ? await buildNotificationEventSearchFilter(admin, search) : null;
 
   if (status) {
     query = query.eq("status", status);
@@ -161,23 +187,15 @@ export default async function NotificacoesPage({ searchParams }: NotificacoesPag
   }
 
   if (search) {
-    const digits = search.replace(/\D/g, "");
-    query =
-      digits.length >= 10
-        ? query.ilike("telefone_destino", `%${digits}%`)
-        : query.or(`mensagem_renderizada.ilike.%${search}%,telefone_destino.ilike.%${digits || search}%`);
+    if (searchFilter) {
+      query = query.or(searchFilter);
+    }
   }
 
   const { data: rawEvents, count } = await query;
   const events = rawEvents ?? [];
   const paginationMeta = createPaginationMeta(count, pagination.page, pagination.pageSize);
-  const summary = {
-    today: events.filter((event) => event.send_date === today).length,
-    sent: events.filter((event) => event.status === "sent").length,
-    failed: events.filter((event) => event.status === "failed").length,
-    expired: events.filter((event) => event.type === "certificate_expired").length,
-    expiring: events.filter((event) => event.type === "certificate_expiring").length,
-  };
+  const summary = await loadNotificationSummary(admin, today);
 
   return (
     <section>
@@ -187,7 +205,7 @@ export default async function NotificacoesPage({ searchParams }: NotificacoesPag
       />
 
       <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <StatCard title="Avisos para hoje" value={summary.today} description="Nesta página" icon={Clock3} tone="blue" />
+        <StatCard title="Avisos para hoje" value={summary.today} description="Total planejado" icon={Clock3} tone="blue" />
         <StatCard title="Enviados" value={summary.sent} description="Avisos concluídos" icon={CheckCircle2} tone="green" />
         <StatCard title="Falhas" value={summary.failed} description="Precisam de revisão" icon={AlertTriangle} tone="red" />
         <StatCard title="Vencidos" value={summary.expired} description="Resumo diário" icon={XCircle} tone="red" />

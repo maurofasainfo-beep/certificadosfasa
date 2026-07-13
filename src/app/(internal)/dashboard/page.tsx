@@ -9,6 +9,7 @@ import {
   RefreshCw,
   XCircle,
 } from "lucide-react";
+import Link from "next/link";
 
 import { EmptyState } from "@/components/ui/empty-state";
 import { LazyDonutChart, LazyExpirationBarChart } from "@/components/ui/lazy-dashboard-charts";
@@ -347,6 +348,7 @@ export default async function DashboardPage() {
             : `Vence em ${formatDaysLabel(certificado.dias_restantes)}`,
       meta: `${formatCnpj(certificado.cnpj)} - ${formatDate(certificado.data_vencimento)}`,
       status: certificado.status,
+      href: `/certificados/${certificado.id}`,
     })),
     ...(metrics.falhas_envio
       ? [
@@ -356,6 +358,7 @@ export default async function DashboardPage() {
             description: `${metrics.falhas_envio} ${metrics.falhas_envio === 1 ? "aviso precisa" : "avisos precisam"} de revisão`,
             meta: "Abra a aba Avisos para tentar novamente",
             status: "vencido" as const,
+            href: "/notificacoes?status=failed",
           },
         ]
       : []),
@@ -367,6 +370,7 @@ export default async function DashboardPage() {
             description: "O envio automático depende do bot conectado",
             meta: "Verifique a tela WhatsApp Bot",
             status: "vencido" as const,
+            href: "/whatsapp",
           },
         ]
       : []),
@@ -431,7 +435,7 @@ export default async function DashboardPage() {
           ) : (
             <div className="overflow-hidden rounded-2xl border border-blue-100/70 bg-white">
               {attentionItems.map((item) => (
-                <div key={item.key} className="flex flex-col gap-2 border-b border-blue-100/70 px-3 py-2.5 last:border-b-0 transition duration-150 hover:bg-blue-50/55 sm:flex-row sm:items-center sm:justify-between">
+                <Link key={item.key} href={item.href} className="flex flex-col gap-2 border-b border-blue-100/70 px-3 py-2.5 outline-none last:border-b-0 transition duration-150 hover:bg-blue-50/55 focus-visible:bg-blue-50/70 focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-blue-100 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <p className="font-semibold text-slate-950" title={item.title}>{item.title}</p>
                     <p className="text-sm text-slate-600">{item.description}</p>
@@ -441,7 +445,7 @@ export default async function DashboardPage() {
                     <StatusBadge status={item.status} />
                     <ArrowRight className="h-4 w-4 text-slate-400" aria-hidden="true" />
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}

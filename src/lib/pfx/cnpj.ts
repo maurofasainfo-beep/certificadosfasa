@@ -37,3 +37,27 @@ export function extractFirstValidCnpj(text: string) {
 
   return [...candidates].find(isValidCnpj) ?? null;
 }
+
+export function extractValidCnpjs(text: string) {
+  const candidates = new Set<string>();
+  const formattedPattern = /\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}/g;
+  const compactPattern = /(?:^|\D)(\d{14})(?!\d)/g;
+
+  for (const match of text.matchAll(formattedPattern)) {
+    const cnpj = onlyDigits(match[0]);
+
+    if (isValidCnpj(cnpj)) {
+      candidates.add(cnpj);
+    }
+  }
+
+  for (const match of text.matchAll(compactPattern)) {
+    const cnpj = match[1];
+
+    if (isValidCnpj(cnpj)) {
+      candidates.add(cnpj);
+    }
+  }
+
+  return [...candidates];
+}

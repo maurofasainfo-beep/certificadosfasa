@@ -120,9 +120,10 @@ Carga em massa de certificados antigos:
 5. Estrutura esperada: `certificados/Cliente ABC/certificado.pfx` e `certificados/Cliente ABC/123456.txt`.
 6. O arquivo `.txt` deve ficar na mesma pasta do `.pfx`. A senha sera lida pelo nome do arquivo `.txt`, sem a extensao. Exemplos aceitos: `123456.txt`, `senha-123456.txt`, `senha 123456.txt`.
 7. Subpastas dentro da pasta do cliente sao ignoradas; somente o `.pfx` e o `.txt` da camada do cliente sao processados.
-8. Nesta carga historica, WhatsApp/telefone do cliente nao e obrigatorio. O nome do cliente e preenchido pelo nome do arquivo do certificado quando nao houver cadastro previo.
-9. Cada PFX e validado no backend, a senha e criptografada, o arquivo vai para o bucket privado e certificados duplicados por hash sao ignorados com relatorio.
-10. Ao final, o backend executa um unico rebuild de notificacoes e mostra quantos certificados foram importados, ignorados ou falharam.
+8. Para pastas grandes, a tela divide a importacao em lotes sequenciais para evitar timeout.
+9. Nesta carga historica, WhatsApp/telefone do cliente nao e obrigatorio. O nome do cliente e preenchido pelo nome do arquivo do certificado quando nao houver cadastro previo.
+10. Cada PFX e validado no backend, a senha e criptografada, o arquivo vai para o bucket privado e certificados duplicados por hash sao ignorados com relatorio.
+11. Ao final, o backend executa um unico rebuild de notificacoes e mostra quantos certificados foram importados, ignorados ou falharam.
 
 Cliente:
 
