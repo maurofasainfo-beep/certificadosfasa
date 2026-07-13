@@ -71,19 +71,6 @@ export function AppNavigation({ items }: { items: NavigationItem[] }) {
               </Link>
             );
           })}
-          <div className="mt-auto rounded-3xl border border-blue-100 bg-blue-50/70 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-blue-600 shadow-sm shadow-blue-950/5 ring-1 ring-blue-100">
-              <Headphones aria-hidden="true" className="h-5 w-5" />
-            </div>
-            <p className="mt-3 text-sm font-semibold text-slate-950">Precisa de ajuda?</p>
-            <p className="mt-1 text-xs leading-5 text-slate-500">Suporte interno para operação dos certificados.</p>
-            <a
-              href="mailto:suporte@fasainformatica.com.br"
-              className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-2xl border border-blue-100 bg-white px-3 text-xs font-semibold text-blue-700 shadow-sm shadow-blue-950/5 transition duration-150 hover:-translate-y-0.5 hover:bg-blue-50"
-            >
-              Falar com suporte
-            </a>
-          </div>
         </div>
       </nav>
 
