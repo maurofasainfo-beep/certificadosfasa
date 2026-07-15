@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
 
   let query = supabase
     .from("clientes")
-    .select("id, nome_razao_social, cnpj, email, telefone, whatsapp, responsavel, observacoes, created_at, updated_at", {
+    .select("id, nome_razao_social, cnpj, email, telefone, whatsapp, whatsapp_notifications_enabled, responsavel, observacoes, created_at, updated_at", {
       count: "exact",
     })
     .order("nome_razao_social", { ascending: true })
@@ -64,14 +64,14 @@ export async function POST(request: NextRequest) {
   const parsed = clienteInputSchema.safeParse(body);
 
   if (!parsed.success) {
-    return jsonError(parsed.error.issues[0]?.message ?? "Dados invalidos.", 400, "validacao");
+    return jsonError(parsed.error.issues[0]?.message ?? "Dados inválidos.", 400, "validacao");
   }
 
   const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase
     .from("clientes")
     .upsert(parsed.data, { onConflict: "cnpj" })
-    .select("id, nome_razao_social, cnpj, email, telefone, whatsapp, responsavel, observacoes, created_at, updated_at")
+    .select("id, nome_razao_social, cnpj, email, telefone, whatsapp, whatsapp_notifications_enabled, responsavel, observacoes, created_at, updated_at")
     .single();
 
   if (error) {

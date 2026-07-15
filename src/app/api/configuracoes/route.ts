@@ -24,7 +24,7 @@ export async function GET() {
     .single();
 
   if (error || !data) {
-    return jsonError("Falha ao carregar configuracoes.", 500, "configuracoes_erro");
+    return jsonError("Falha ao carregar configurações.", 500, "configuracoes_erro");
   }
 
   return NextResponse.json({ configuracoes: data });
@@ -41,7 +41,7 @@ export async function PUT(request: NextRequest) {
   const parsed = configuracoesSistemaInputSchema.safeParse(body);
 
   if (!parsed.success) {
-    return jsonError(parsed.error.issues[0]?.message ?? "Dados invalidos.", 400, "validacao");
+    return jsonError(parsed.error.issues[0]?.message ?? "Dados inválidos.", 400, "validacao");
   }
 
   const admin = createSupabaseAdminClient();
@@ -56,7 +56,7 @@ export async function PUT(request: NextRequest) {
     .single();
 
   if (error || !data) {
-    return jsonError("Falha ao salvar configuracoes.", 500, "configuracoes_salvar");
+    return jsonError("Falha ao salvar configurações.", 500, "configuracoes_salvar");
   }
 
   await admin.from("audit_logs").insert({

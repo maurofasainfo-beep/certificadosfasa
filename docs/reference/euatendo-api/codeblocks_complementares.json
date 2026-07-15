@@ -1,0 +1,74 @@
+[
+  {
+    "index": 1091,
+    "title": "Documentação da API > Integre suas aplicações com a API pública do euatendo > Autenticação > Todas as requisições devem incluir o header de autorização com seu token da API",
+    "language": "json",
+    "code": "// Headers obrigatórios\n{\n  \"Authorization\": \"Bearer SEU_TOKEN_API\",\n  \"Content-Type\": \"application/json\"\n}"
+  },
+  {
+    "index": 2137,
+    "title": "id > GET /list-instances > instanceId > URL Base",
+    "language": "json",
+    "code": "https://apicluster.euatendo.app"
+  },
+  {
+    "index": 4552,
+    "title": "/check-instance-status > 120 requisições > 1 minuto > Resposta quando limite excedido (HTTP 429)",
+    "language": "json",
+    "code": "{\n  \"error\": \"Rate limit exceeded\",\n  \"errorCode\": \"RATE_LIMIT_EXCEEDED\",\n  \"currentCount\": 60,\n  \"maxRequests\": 60,\n  \"resetAt\": \"2026-01-27T10:05:00Z\",\n  \"retryAfter\": 30\n}"
+  },
+  {
+    "index": 34575,
+    "title": "Sincronização > Outros > Exemplo de Payload Recebido > Estrutura do payload que seu webhook receberá via POST",
+    "language": "json",
+    "code": "{\n  \"event\": \"Message\",\n  \"data\": {\n    \"id\": \"3EB0E0622502E3464DDEA3\",\n    \"from\": \"5511999999999@s.whatsapp.net\",\n    \"to\": \"5521888888888@s.whatsapp.net\",\n    \"timestamp\": 1766429868,\n    \"type\": \"text\",\n    \"body\": \"Olá, tudo bem?\",\n    \"isGroup\": false,\n    \"pushName\": \"João Silva\"\n  }\n}"
+  },
+  {
+    "index": 61324,
+    "title": "Tipos de Botões > Cada tipo de botão requer campos específicos além de buttonId, buttonText e type > reply / quick_reply > Resposta rápida",
+    "language": "json",
+    "code": "{\n  \"buttonId\": \"resposta_1\",\n  \"buttonText\": { \"displayText\": \"Sim, tenho interesse\" },\n  \"type\": \"reply\"\n}"
+  },
+  {
+    "index": 61817,
+    "title": "Resposta rápida > Retorna o buttonId quando clicado > url / cta_url > Abre um link",
+    "language": "json",
+    "code": "{\n  \"buttonId\": \"link_1\",\n  \"buttonText\": { \"displayText\": \"Visitar Site\" },\n  \"type\": \"cta_url\",\n  \"url\": \"https://exemplo.com\"\n}"
+  },
+  {
+    "index": 62332,
+    "title": "Abre um link > URL deve ser HTTPS > call / cta_call > Inicia chamada telefônica",
+    "language": "json",
+    "code": "{\n  \"buttonId\": \"ligar_1\",\n  \"buttonText\": { \"displayText\": \"Ligar para Vendas\" },\n  \"type\": \"cta_call\",\n  \"phone\": \"+5511988888888\"\n}"
+  },
+  {
+    "index": 62867,
+    "title": "Inicia chamada telefônica > Telefone em formato E.164 (com +) > copy / cta_copy > Copia texto para clipboard",
+    "language": "json",
+    "code": "{\n  \"buttonId\": \"copiar_1\",\n  \"buttonText\": { \"displayText\": \"Copiar Código\" },\n  \"type\": \"cta_copy\",\n  \"code\": \"DESCONTO50\"\n}"
+  },
+  {
+    "index": 63372,
+    "title": "Copia texto para clipboard > Ideal para cupons, códigos PIX, senhas > pix / payment_info > Botão de pagamento PIX",
+    "language": "json",
+    "code": "{\n  \"buttonId\": \"pix_1\",\n  \"buttonText\": { \"displayText\": \"Pagar R$ 99,90\" },\n  \"type\": \"pix\",\n  \"pix_key\": \"email@empresa.com\",\n  \"merchant_name\": \"Empresa LTDA\",\n  \"pix_type\": \"EMAIL\",\n  \"currency\": \"BRL\",           // opcional\n  \"total_value\": 9990,         // opcional, em centavos\n  \"total_offset\": 100          // opcional\n}"
+  },
+  {
+    "index": 64282,
+    "title": "pix_type aceita: CPF, CNPJ, PHONE, EMAIL, EVP > Header com Mídia > Adicione imagem, vídeo ou documento acima dos botões > 🖼️ Imagem",
+    "language": "json",
+    "code": "\"image\": {\n  \"url\": \"https://exemplo.com/banner.jpg\"\n}"
+  },
+  {
+    "index": 64524,
+    "title": "Header com Mídia > Adicione imagem, vídeo ou documento acima dos botões > 🖼️ Imagem > 🎥 Vídeo",
+    "language": "json",
+    "code": "\"video\": {\n  \"url\": \"https://exemplo.com/video.mp4\"\n}"
+  },
+  {
+    "index": 64743,
+    "title": "Adicione imagem, vídeo ou documento acima dos botões > 🖼️ Imagem > 🎥 Vídeo > 📄 Documento",
+    "language": "json",
+    "code": "\"document\": {\n  \"url\": \"https://exemplo.com/catalogo.pdf\"\n}"
+  }
+]

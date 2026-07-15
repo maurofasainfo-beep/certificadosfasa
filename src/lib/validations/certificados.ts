@@ -14,22 +14,27 @@ const optionalText = z
 const optionalEmail = z
   .string()
   .trim()
-  .email("E-mail invalido.")
+  .email("E-mail inválido.")
   .optional()
   .or(z.literal(""))
   .transform((value) => value || null);
 
-const requiredWhatsapp = z
+const optionalWhatsapp = z
   .string()
   .trim()
-  .min(1, "Informe o WhatsApp do cliente.")
+  .optional()
+  .or(z.literal(""))
   .transform((value, context) => {
+    if (!value) {
+      return null;
+    }
+
     try {
       return normalizeBrazilianPhone(value);
     } catch (error) {
       context.addIssue({
         code: "custom",
-        message: error instanceof Error ? error.message : "Informe um WhatsApp valido.",
+        message: error instanceof Error ? error.message : "Informe um WhatsApp válido.",
       });
       return z.NEVER;
     }
@@ -45,16 +50,17 @@ export const uploadCertificateFieldsSchema = z.object({
     .transform((value) => String(value ?? "").replace(/\D/g, ""))
     .transform((value) => (value ? value : null))
     .refine((value) => value === null || value.length === 14, "CNPJ manual deve ter 14 digitos."),
-  nome_razao_social: z.string().trim().min(2, "Informe a razao social do cliente."),
+  nome_razao_social: z.string().trim().min(2, "Informe a razão social do cliente."),
   email: optionalEmail,
   telefone: optionalText,
-  whatsapp: requiredWhatsapp,
+  whatsapp: optionalWhatsapp,
+  whatsapp_notifications_enabled: z.coerce.boolean().default(true),
   responsavel: optionalText,
   observacoes: optionalText,
 });
 
 export const clienteInputSchema = z.object({
-  nome_razao_social: z.string().trim().min(2, "Informe a razao social."),
+  nome_razao_social: z.string().trim().min(2, "Informe a razão social."),
   cnpj: z
     .string()
     .trim()
@@ -62,7 +68,8 @@ export const clienteInputSchema = z.object({
     .refine((value) => value.length === 14, "Informe um CNPJ com 14 digitos."),
   email: optionalEmail,
   telefone: optionalText,
-  whatsapp: requiredWhatsapp,
+  whatsapp: optionalWhatsapp,
+  whatsapp_notifications_enabled: z.coerce.boolean().default(true),
   responsavel: optionalText,
   observacoes: optionalText,
 });

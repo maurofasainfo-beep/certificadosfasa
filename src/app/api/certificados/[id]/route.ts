@@ -151,7 +151,7 @@ export async function DELETE(request: NextRequest, { params }: CertificadoRouteP
         action: "storage_delete_failed",
         error: removeError.message,
       });
-      return jsonError("Falha ao remover o arquivo do Storage. A exclusao foi cancelada.", 502, "storage_excluir");
+    return jsonError("Falha ao remover o arquivo do Storage. A exclusão foi cancelada.", 502, "storage_excluir");
     }
   }
 
@@ -193,7 +193,7 @@ export async function DELETE(request: NextRequest, { params }: CertificadoRouteP
       error: deleteError.message,
       metadata: { stage: "database_delete_failed_storage_restored" },
     });
-    return jsonError("Falha ao excluir no banco de dados. O arquivo foi restaurado quando possivel.", 500, "certificado_excluir");
+    return jsonError("Falha ao excluir no banco de dados. O arquivo foi restaurado quando possível.", 500, "certificado_excluir");
   }
 
   await markStorageReconciliationJob({

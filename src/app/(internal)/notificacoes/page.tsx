@@ -1,4 +1,4 @@
-import { AlertTriangle, CalendarClock, CheckCircle2, Clock3, XCircle } from "lucide-react";
+import { AlertTriangle, CalendarClock, CheckCircle2, Clock3, SendHorizonal, XCircle } from "lucide-react";
 import Link from "next/link";
 
 import { buttonClass, inputClass, selectClass } from "@/components/ui/button-styles";
@@ -17,7 +17,14 @@ import { createPaginationMeta, parsePagination } from "@/lib/pagination";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { NotificationEventStatus } from "@/lib/supabase/database.types";
 import { cn } from "@/lib/utils/cn";
-import { formatCertificateTitle, formatCnpj, formatDate, formatDateTime, formatDaysLabel } from "@/lib/utils/format";
+import {
+  formatCertificateTitle,
+  formatCnpj,
+  formatDate,
+  formatDateTimeShort,
+  formatDisplayName,
+  formatRelativeExpiration,
+} from "@/lib/utils/format";
 import { maskPhone } from "@/lib/utils/phone";
 
 import { RetryEventButton } from "./retry-event-button";
@@ -28,6 +35,8 @@ type NotificacoesPageProps = {
     type?: string;
     send_date?: string;
     recipient_id?: string;
+    provider?: string;
+    audience?: string;
     q?: string;
     page?: string;
     pageSize?: string;
@@ -36,31 +45,46 @@ type NotificacoesPageProps = {
 
 const statuses = ["pending", "reserved", "processing", "retry", "sent", "failed", "cancelled", "skipped"] as const;
 const types = ["certificate_expiring", "certificate_expired"] as const;
+const providers = ["euatendo"] as const;
+const audiences = ["internal", "client"] as const;
 
 const TYPE_LABELS: Record<(typeof types)[number], string> = {
-  certificate_expiring: "Vencendo",
-  certificate_expired: "Vencidos",
+  certificate_expiring: "Aviso de vencimento",
+  certificate_expired: "Resumo de vencidos",
 };
 
 const STATUS_LABELS: Record<NotificationEventStatus, { label: string; tone: Tone }> = {
-  pending: { label: "Aguardando envio", tone: "blue" },
-  reserved: { label: "Preparando envio", tone: "blue" },
-  processing: { label: "Enviando", tone: "blue" },
-  retry: { label: "Tentando novamente", tone: "amber" },
-  sent: { label: "Aviso enviado", tone: "green" },
+  pending: { label: "Na fila", tone: "blue" },
+  reserved: { label: "Reservado", tone: "blue" },
+  processing: { label: "Em processamento", tone: "blue" },
+  retry: { label: "Nova tentativa agendada", tone: "amber" },
+  sent: { label: "Enviado", tone: "green" },
   failed: { label: "Falha no envio", tone: "red" },
   cancelled: { label: "Cancelado", tone: "slate" },
   skipped: { label: "Ignorado", tone: "slate" },
 };
 
+const PROVIDER_LABELS: Record<string, string> = {
+  euatendo: "WhatsApp",
+};
+
+const AUDIENCE_LABELS: Record<(typeof audiences)[number], string> = {
+  internal: "Equipe interna",
+  client: "Cliente",
+};
+
+function getProviderLabel(provider: string | null | undefined) {
+  return provider ? (PROVIDER_LABELS[provider] ?? "Canal legado") : "WhatsApp";
+}
+
 function getQuickFilters(today: string) {
   return [
     { key: "all", label: "Todos", href: "/notificacoes" },
-    { key: "expired", label: "Vencidos", href: "/notificacoes?type=certificate_expired" },
-    { key: "expiring", label: "Vencendo", href: "/notificacoes?type=certificate_expiring" },
-    { key: "today", label: "Avisos de hoje", href: `/notificacoes?send_date=${today}` },
+    { key: "today", label: "Hoje", href: `/notificacoes?send_date=${today}` },
+    { key: "queue", label: "Na fila", href: "/notificacoes?status=pending" },
     { key: "sent", label: "Enviados", href: "/notificacoes?status=sent" },
-    { key: "failed", label: "Falhas", href: "/notificacoes?status=failed" },
+    { key: "failed", label: "Com falha", href: "/notificacoes?status=failed" },
+    { key: "expired", label: "Vencidos", href: "/notificacoes?type=certificate_expired" },
   ];
 }
 
@@ -75,11 +99,11 @@ function getActiveQuickFilter({
   sendDate: string;
   today: string;
 }) {
+  if (status === "pending") return "queue";
   if (status === "sent") return "sent";
   if (status === "failed") return "failed";
   if (sendDate === today) return "today";
   if (type === "certificate_expired") return "expired";
-  if (type === "certificate_expiring") return "expiring";
   return "all";
 }
 
@@ -89,41 +113,57 @@ function getClienteTelefone(cliente: { whatsapp?: string | null; telefone?: stri
 
 function getNoticeText(event: { type: string; dias_restantes: number | null; certificados?: { data_vencimento: string | null } | null }) {
   if (event.type === "certificate_expired") {
-    return "Resumo diário de vencidos";
+    return "Resumo diário de certificados vencidos";
   }
 
   if (typeof event.dias_restantes === "number") {
-    return `Vence em ${formatDaysLabel(event.dias_restantes)}`;
+    return formatRelativeExpiration(event.dias_restantes);
   }
 
   if (event.certificados?.data_vencimento) {
-    const days = daysUntilDate(event.certificados.data_vencimento);
-    return days < 0 ? `Vencido há ${formatDaysLabel(Math.abs(days))}` : `Vence em ${formatDaysLabel(days)}`;
+    return formatRelativeExpiration(daysUntilDate(event.certificados.data_vencimento));
   }
 
   return "Aviso planejado";
 }
 
-function getRecommendedAction(event: { status: string; type: string }) {
+function getRecommendedAction(event: { status: string; type: string; next_retry_at?: string | null }) {
   if (event.status === "failed") {
-    return "Revisar e tentar novamente";
+    return "Verificar conexão do WhatsApp e tentar novamente";
   }
 
-  return event.type === "certificate_expired" ? "Contatar clientes vencidos" : "Acompanhar renovação";
+  if (event.status === "retry" && event.next_retry_at) {
+    return `Nova tentativa às ${formatDateTimeShort(event.next_retry_at)}`;
+  }
+
+  return event.type === "certificate_expired" ? "Revisar certificados vencidos" : "Acompanhar renovação";
 }
 
 async function loadNotificationSummary(admin: ReturnType<typeof createSupabaseAdminClient>, today: string) {
-  const [todayResult, sentResult, failedResult, expiredResult, expiringResult] = await Promise.all([
-    admin.from("notification_events").select("id", { count: "exact", head: true }).eq("send_date", today),
-    admin.from("notification_events").select("id", { count: "exact", head: true }).eq("status", "sent"),
+  const [queueResult, processingResult, sentTodayResult, failedResult, expiredResult, expiringResult] = await Promise.all([
+    admin
+      .from("notification_events")
+      .select("id", { count: "exact", head: true })
+      .in("status", ["pending", "retry"])
+      .lte("send_date", today),
+    admin
+      .from("notification_events")
+      .select("id", { count: "exact", head: true })
+      .in("status", ["reserved", "processing"]),
+    admin
+      .from("notification_events")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "sent")
+      .gte("sent_at", `${today}T00:00:00`),
     admin.from("notification_events").select("id", { count: "exact", head: true }).eq("status", "failed"),
     admin.from("notification_events").select("id", { count: "exact", head: true }).eq("type", "certificate_expired"),
     admin.from("notification_events").select("id", { count: "exact", head: true }).eq("type", "certificate_expiring"),
   ]);
 
   return {
-    today: todayResult.count ?? 0,
-    sent: sentResult.count ?? 0,
+    queue: queueResult.count ?? 0,
+    processing: processingResult.count ?? 0,
+    sentToday: sentTodayResult.count ?? 0,
     failed: failedResult.count ?? 0,
     expired: expiredResult.count ?? 0,
     expiring: expiringResult.count ?? 0,
@@ -141,6 +181,12 @@ export default async function NotificacoesPage({ searchParams }: NotificacoesPag
     : null;
   const sendDate = params.send_date && /^\d{4}-\d{2}-\d{2}$/.test(params.send_date) ? params.send_date : "";
   const recipientId = params.recipient_id ?? "";
+  const provider = params.provider && providers.includes(params.provider as (typeof providers)[number])
+    ? (params.provider as (typeof providers)[number])
+    : "";
+  const audience = params.audience && audiences.includes(params.audience as (typeof audiences)[number])
+    ? (params.audience as (typeof audiences)[number])
+    : "";
   const search = params.q?.trim().replace(/[%,()]/g, "") ?? "";
   const urlParams = new URLSearchParams();
   if (params.page) urlParams.set("page", params.page);
@@ -162,7 +208,7 @@ export default async function NotificacoesPage({ searchParams }: NotificacoesPag
   let query = admin
     .from("notification_events")
     .select(
-      "id, recipient_id, telefone_destino, type, dias_restantes, send_date, status, sent_at, failed_at, attempt_count, max_attempts, next_retry_at, error_message, created_at, clientes(nome_razao_social, cnpj, telefone, whatsapp), certificados(nome_titular, cnpj, data_vencimento), notification_recipients(nome, telefone_normalizado, ativo), whatsapp_devices(name)",
+      "id, recipient_id, telefone_destino, type, audience, provider, dias_restantes, send_date, status, sent_at, failed_at, attempt_count, max_attempts, next_retry_at, error_message, created_at, clientes(nome_razao_social, cnpj, telefone, whatsapp), certificados(nome_titular, cnpj, data_vencimento), notification_recipients(nome, telefone_normalizado, ativo)",
       { count: "exact" },
     )
     .order("send_date", { ascending: true })
@@ -186,34 +232,42 @@ export default async function NotificacoesPage({ searchParams }: NotificacoesPag
     query = query.eq("recipient_id", recipientId);
   }
 
-  if (search) {
-    if (searchFilter) {
-      query = query.or(searchFilter);
-    }
+  if (provider) {
+    query = query.eq("provider", provider);
+  }
+
+  if (audience) {
+    query = query.eq("audience", audience);
+  }
+
+  if (search && searchFilter) {
+    query = query.or(searchFilter);
   }
 
   const { data: rawEvents, count } = await query;
   const events = rawEvents ?? [];
   const paginationMeta = createPaginationMeta(count, pagination.page, pagination.pageSize);
   const summary = await loadNotificationSummary(admin, today);
+  const hasFilters = Boolean(search || status || type || sendDate || recipientId || provider || audience);
 
   return (
     <section>
       <SectionHeader
-        title="Avisos"
-        description="Acompanhe avisos planejados, envios do dia, falhas e certificados que exigem contato."
+        title="Central de avisos"
+        description="Acompanhe mensagens planejadas, enviadas e que precisam de atenção."
       />
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <StatCard title="Avisos para hoje" value={summary.today} description="Total planejado" icon={Clock3} tone="blue" />
-        <StatCard title="Enviados" value={summary.sent} description="Avisos concluídos" icon={CheckCircle2} tone="green" />
-        <StatCard title="Falhas" value={summary.failed} description="Precisam de revisão" icon={AlertTriangle} tone="red" />
-        <StatCard title="Vencidos" value={summary.expired} description="Resumo diário" icon={XCircle} tone="red" />
-        <StatCard title="Vencendo" value={summary.expiring} description="Próximos avisos" icon={CalendarClock} tone="amber" />
+      <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+        <StatCard title="Na fila" value={summary.queue} description="Mensagens aguardando envio" icon={Clock3} tone="blue" />
+        <StatCard title="Processando" value={summary.processing} description="Reservadas ou enviando agora" icon={SendHorizonal} tone="blue" />
+        <StatCard title="Enviadas hoje" value={summary.sentToday} description="Aceitas pelo provedor" icon={CheckCircle2} tone="green" />
+        <StatCard title="Com falha" value={summary.failed} description="Precisam de revisão" icon={AlertTriangle} tone="red" />
+        <StatCard title="Vencidos" value={summary.expired} description="Resumos de vencidos" icon={XCircle} tone="red" />
+        <StatCard title="Próximos" value={summary.expiring} description="Avisos de vencimento" icon={CalendarClock} tone="amber" />
       </div>
 
       <div className="mb-3 grid gap-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Categoria</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Categorias</p>
         <div className="flex gap-2 overflow-x-auto pb-1">
           {getQuickFilters(today).map((item) => {
             const active = activeQuickFilter === item.key;
@@ -224,9 +278,9 @@ export default async function NotificacoesPage({ searchParams }: NotificacoesPag
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "inline-flex h-9 shrink-0 items-center rounded-full px-3.5 text-sm font-semibold ring-1 ring-inset transition duration-200 hover:-translate-y-0.5",
+                  "inline-flex h-9 shrink-0 items-center rounded-full px-3.5 text-sm font-semibold ring-1 ring-inset transition duration-150",
                   active
-                    ? "bg-blue-600 text-white shadow-sm shadow-blue-600/20 ring-blue-600"
+                    ? "bg-blue-600 text-white shadow-sm shadow-blue-600/15 ring-blue-600"
                     : "bg-white text-slate-700 ring-slate-200 hover:bg-blue-50 hover:text-blue-700 hover:ring-blue-200",
                 )}
               >
@@ -238,18 +292,22 @@ export default async function NotificacoesPage({ searchParams }: NotificacoesPag
       </div>
 
       <div className="grid gap-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Refinar por</p>
-        <FilterBar columns="lg:grid-cols-[1fr_220px_180px_auto]">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Refinar por</p>
+          <p className="text-xs text-slate-500">{paginationMeta.total} avisos encontrados</p>
+        </div>
+        <FilterBar columns="lg:grid-cols-[1fr_210px_170px_160px_160px_auto_auto]">
           {status ? <input type="hidden" name="status" value={status} /> : null}
           {type ? <input type="hidden" name="type" value={type} /> : null}
           <input
             type="search"
             name="q"
             defaultValue={params.q ?? ""}
-            placeholder="Cliente, CNPJ ou certificado"
+            placeholder="Buscar por cliente, certificado ou destinatário"
             className={inputClass}
+            aria-label="Buscar avisos"
           />
-          <select name="recipient_id" defaultValue={recipientId} className={selectClass}>
+          <select name="recipient_id" defaultValue={recipientId} className={selectClass} aria-label="Filtrar por destinatário">
             <option value="">Todos os destinatários</option>
             {(recipients ?? []).map((recipient) => (
               <option key={recipient.id} value={recipient.id}>
@@ -257,15 +315,39 @@ export default async function NotificacoesPage({ searchParams }: NotificacoesPag
               </option>
             ))}
           </select>
-          <input type="date" name="send_date" defaultValue={sendDate} className={inputClass} />
+          <input type="date" name="send_date" defaultValue={sendDate} className={inputClass} aria-label="Filtrar por data planejada" />
+          <select name="provider" defaultValue={provider} className={selectClass} aria-label="Filtrar por canal">
+            <option value="">Todos os canais</option>
+            {providers.map((item) => (
+              <option key={item} value={item}>
+                {PROVIDER_LABELS[item]}
+              </option>
+            ))}
+          </select>
+          <select name="audience" defaultValue={audience} className={selectClass} aria-label="Filtrar por público">
+            <option value="">Todos os públicos</option>
+            {audiences.map((item) => (
+              <option key={item} value={item}>
+                {AUDIENCE_LABELS[item]}
+              </option>
+            ))}
+          </select>
           <button type="submit" className={buttonClass("secondary", "h-10")}>
-            Filtrar
+            Aplicar filtros
           </button>
+          {hasFilters ? (
+            <Link href="/notificacoes" className={buttonClass("ghost", "h-10")}>
+              Limpar filtros
+            </Link>
+          ) : null}
         </FilterBar>
       </div>
 
       {!events.length ? (
-        <EmptyState title="Nenhum aviso encontrado" description="Ajuste os filtros ou execute a verificação automática para planejar novos avisos." />
+        <EmptyState
+          title={hasFilters ? "Nenhum resultado encontrado" : "Nenhum aviso nesta categoria"}
+          description={hasFilters ? "Revise o termo pesquisado ou limpe os filtros." : "Altere os filtros ou consulte outra categoria."}
+        />
       ) : (
         <div className="grid gap-4">
           <div className="grid gap-3 xl:hidden">
@@ -284,11 +366,11 @@ export default async function NotificacoesPage({ searchParams }: NotificacoesPag
                   : "-";
 
               return (
-                <article key={event.id} className="rounded-2xl border border-white/75 bg-white/82 p-4 shadow-sm shadow-blue-950/5 ring-1 ring-blue-100/45 backdrop-blur-xl">
+                <article key={event.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/5">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="font-semibold text-slate-950">
-                        {cliente?.nome_razao_social ?? (event.type === "certificate_expired" ? "Resumo diário" : "-")}
+                        {formatDisplayName(cliente?.nome_razao_social ?? (event.type === "certificate_expired" ? "Resumo diário" : "-"))}
                       </p>
                       <p className="mt-1 text-xs text-slate-500">{cliente?.cnpj ? formatCnpj(cliente.cnpj) : "Lista consolidada"}</p>
                     </div>
@@ -296,12 +378,15 @@ export default async function NotificacoesPage({ searchParams }: NotificacoesPag
                   </div>
                   <div className="mt-4 grid gap-3 text-sm text-slate-700 sm:grid-cols-2">
                     <p><span className="font-medium text-slate-950">Certificado:</span> {certificadoNome}</p>
-                    <p><span className="font-medium text-slate-950">Aviso:</span> {getNoticeText({ ...event, certificados: certificado ?? null })}</p>
-                    <p><span className="font-medium text-slate-950">Contato do cliente:</span> {event.type === "certificate_expired" ? "Lista consolidada" : getClienteTelefone(cliente)}</p>
-                    <p><span className="font-medium text-slate-950">Destinatário:</span> {recipient?.nome ?? "Destinatário removido"} ({maskPhone(event.telefone_destino)})</p>
-                    <p><span className="font-medium text-slate-950">Envio:</span> {formatDate(event.send_date)}</p>
-                    <p><span className="font-medium text-slate-950">Última tentativa:</span> {formatDateTime(lastAttempt)}</p>
-                    <p className="sm:col-span-2"><span className="font-medium text-slate-950">Ação recomendada:</span> {getRecommendedAction(event)}</p>
+                    <p><span className="font-medium text-slate-950">Tipo:</span> {TYPE_LABELS[event.type as keyof typeof TYPE_LABELS] ?? "Aviso"}</p>
+                    <p><span className="font-medium text-slate-950">Prazo:</span> {getNoticeText({ ...event, certificados: certificado ?? null })}</p>
+                    <p>
+                      <span className="font-medium text-slate-950">Destinatário:</span>{" "}
+                      {event.audience === "client" ? "Cliente" : recipient?.nome ?? "Destinatário removido"} ({maskPhone(event.telefone_destino)})
+                    </p>
+                    <p><span className="font-medium text-slate-950">Programado para:</span> {formatDate(event.send_date)}</p>
+                    <p><span className="font-medium text-slate-950">Última tentativa:</span> {formatDateTimeShort(lastAttempt)}</p>
+                    <p className="sm:col-span-2"><span className="font-medium text-slate-950">Próxima ação:</span> {getRecommendedAction(event)}</p>
                   </div>
                   {user.role === "admin" && ["failed", "cancelled", "skipped"].includes(event.status) ? (
                     <div className="mt-3">
@@ -314,16 +399,16 @@ export default async function NotificacoesPage({ searchParams }: NotificacoesPag
           </div>
 
           <div className="hidden xl:block">
-            <TableShell>
+            <TableShell minWidth="1120px">
               <TableHead>
                 <tr>
                   <TableHeaderCell>Cliente</TableHeaderCell>
                   <TableHeaderCell>Certificado</TableHeaderCell>
                   <TableHeaderCell>Aviso</TableHeaderCell>
-                  <TableHeaderCell>Destinatário interno</TableHeaderCell>
-                  <TableHeaderCell>Envio</TableHeaderCell>
+                  <TableHeaderCell>Destinatário</TableHeaderCell>
+                  <TableHeaderCell>Planejado</TableHeaderCell>
                   <TableHeaderCell>Status</TableHeaderCell>
-                  <TableHeaderCell>Detalhes</TableHeaderCell>
+                  <TableHeaderCell>Próxima ação</TableHeaderCell>
                   <TableHeaderCell>Ações</TableHeaderCell>
                 </tr>
               </TableHead>
@@ -343,14 +428,14 @@ export default async function NotificacoesPage({ searchParams }: NotificacoesPag
                       : "-";
 
                   return (
-                    <tr key={event.id} className="transition duration-200 hover:bg-blue-50/48">
-                      <TableCell>
+                    <tr key={event.id} className="transition duration-150 hover:bg-slate-50">
+                      <TableCell className="max-w-[250px]">
                         <p className="font-semibold text-slate-950">
-                          {cliente?.nome_razao_social ?? (event.type === "certificate_expired" ? "Resumo diário" : "-")}
+                          {formatDisplayName(cliente?.nome_razao_social ?? (event.type === "certificate_expired" ? "Resumo diário" : "-"))}
                         </p>
                         <p className="text-xs text-slate-500">{cliente?.cnpj ? formatCnpj(cliente.cnpj) : "Lista consolidada"}</p>
                       </TableCell>
-                      <TableCell className="max-w-[190px] text-slate-700">
+                      <TableCell className="max-w-[220px] text-slate-700">
                         <p className="line-clamp-2">{certificadoNome}</p>
                         {certificado?.data_vencimento ? (
                           <p className="mt-1 text-xs text-slate-500">Vencimento: {formatDate(certificado.data_vencimento)}</p>
@@ -361,16 +446,22 @@ export default async function NotificacoesPage({ searchParams }: NotificacoesPag
                         <p className="mt-1 text-xs text-slate-500">{getNoticeText({ ...event, certificados: certificado ?? null })}</p>
                       </TableCell>
                       <TableCell>
-                        <p className="font-medium text-slate-950">{recipient?.nome ?? "Destinatário removido"}</p>
+                        <p className="font-medium text-slate-950">
+                          {event.audience === "client" ? "Cliente" : recipient?.nome ?? "Destinatário removido"}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {AUDIENCE_LABELS[(event.audience as keyof typeof AUDIENCE_LABELS) ?? "internal"] ?? "Equipe interna"} via{" "}
+                          {getProviderLabel(event.provider)}
+                        </p>
                         <p className="text-xs text-slate-500">{maskPhone(event.telefone_destino)}</p>
                       </TableCell>
                       <TableCell className="text-slate-700">{formatDate(event.send_date)}</TableCell>
                       <TableCell>
                         <Badge tone={statusMeta.tone}>{statusMeta.label}</Badge>
                       </TableCell>
-                      <TableCell className="max-w-[210px] text-slate-700">
+                      <TableCell className="max-w-[230px] text-slate-700">
                         <p>{getRecommendedAction(event)}</p>
-                        <p className="mt-1 text-xs text-slate-500">Última tentativa: {formatDateTime(lastAttempt)}</p>
+                        <p className="mt-1 text-xs text-slate-500">Última tentativa: {formatDateTimeShort(lastAttempt)}</p>
                         <p className="mt-1 text-xs text-slate-500">
                           Cliente: {event.type === "certificate_expired" ? "Lista consolidada" : getClienteTelefone(cliente)}
                         </p>
@@ -396,6 +487,8 @@ export default async function NotificacoesPage({ searchParams }: NotificacoesPag
               type: type || undefined,
               send_date: sendDate || undefined,
               recipient_id: recipientId || undefined,
+              provider: provider || undefined,
+              audience: audience || undefined,
             }}
             page={paginationMeta.page}
             pageSize={paginationMeta.pageSize}

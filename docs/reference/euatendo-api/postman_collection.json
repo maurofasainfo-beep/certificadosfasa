@@ -1,0 +1,965 @@
+{
+  "info": {
+    "name": "euatendo API Cluster - Documentacao Extraida",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Instâncias",
+      "item": [
+        {
+          "name": "GET /list-instances",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/list-instances",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "list-instances"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /create-instance",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/create-instance",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "create-instance"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"nome-da-instancia\",\n  \"serverType\": \"euAtendoPRO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /proxy-managed-cities",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/proxy-managed-cities",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "proxy-managed-cities"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"uuid\": \"uuid-da-instancia\",\n  \"country\": \"br\",\n  \"state\": \"sp\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /connect-instance",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connect-instance",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "connect-instance"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"uuid\": \"uuid-da-instancia\",\n  \"phone\": \"5511999999999\",\n  \"proxyManaged\": {\n    \"country\": \"br\",\n    \"state\": \"sp\",\n    \"city\": \"campinas\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /check-instance-status",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/check-instance-status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "check-instance-status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"instanceId\": \"uuid-da-instancia\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /delete-instance",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/delete-instance",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "delete-instance"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"instanceId\": \"uuid-da-instancia\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Mensagens",
+      "item": [
+        {
+          "name": "POST /send-text-message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/send-text-message",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "send-text-message"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"instanceId\": \"uuid-da-instancia\",\n  \"number\": \"5511999999999\",\n  \"text\": \"Olá, esta é uma mensagem de teste!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /send-media-message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/send-media-message",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "send-media-message"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "// Opção 1: JSON com URL\n{\n  \"instanceId\": \"uuid-da-instancia\",\n  \"number\": \"5511999999999\",\n  \"type\": \"image\",\n  \"file\": \"https://url-do-arquivo.com/imagem.jpg\",\n  \"text\": \"Legenda opcional\"\n}\n\n// Opção 2: JSON com Base64 (NOVO!)\n{\n  \"instanceId\": \"uuid-da-instancia\",\n  \"number\": \"5511999999999\",\n  \"type\": \"document\",\n  \"base64\": \"JVBERi0xLjQKJeLjz9M...\",\n  \"mimeType\": \"application/pdf\",\n  \"fileName\": \"contrato.pdf\",\n  \"text\": \"Segue o documento\"\n}\n\n// Opção 3: FormData com arquivo local\n// Content-Type: multipart/form-data\n// - instanceId: \"uuid-da-instancia\"\n// - number: \"5511999999999\"\n// - type: \"image\"\n// - file: (arquivo binário)\n// - text: \"Legenda opcional\"",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /get-message-status",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/get-message-status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "get-message-status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "// euAtendo PRO - busca status por ID da mensagem\n{\n  \"instanceId\": \"uuid-da-instancia\",\n  \"messageId\": \"3EB0E8102609EC734DCA5D\"\n}\n\n// euAtendo GO - busca histórico por JID do contato\n{\n  \"instanceId\": \"uuid-da-instancia\",\n  \"messageId\": \"559982385000@s.whatsapp.net\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /check-number-whatsapp",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/check-number-whatsapp",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "check-number-whatsapp"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"instanceId\": \"uuid-da-instancia\",\n  \"numbers\": [\n    \"5511999998888\",\n    \"5521988887777\",\n    \"5531977776666\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Contatos",
+      "item": [
+        {
+          "name": "POST /get-instance-contacts",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/get-instance-contacts",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "get-instance-contacts"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"instanceId\": \"uuid-da-instancia\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /send-contact",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/send-contact",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "send-contact"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"instanceId\": \"uuid-da-instancia\",\n  \"number\": \"5511999999999\",\n  \"fullName\": \"João Silva\",\n  \"phoneNumber\": \"5511888888888,5521777777777\",\n  \"organization\": \"Empresa XYZ\",\n  \"email\": \"joao@empresa.com\",\n  \"url\": \"https://empresa.com/joao\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Webhooks",
+      "item": [
+        {
+          "name": "POST /set-instance-webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/set-instance-webhook",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "set-instance-webhook"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"instanceId\": \"uuid-da-instancia\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /set-instance-webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/set-instance-webhook",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "set-instance-webhook"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"instanceId\": \"uuid-da-instancia\",\n  \"webhookUrl\": \"https://seu-servidor.com/webhook\",\n  \"events\": [\"Message\", \"Receipt\", \"Connected\"],\n  \"active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "PIX",
+      "item": [
+        {
+          "name": "POST /send-pix-button",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/send-pix-button",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "send-pix-button"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"instanceId\": \"uuid-da-instancia\",\n  \"number\": \"5511999999999\",\n  \"pixType\": \"EVP\",\n  \"pixKey\": \"123e4567-e89b-12d3-a456-426614174000\",\n  \"pixName\": \"Nome do Recebedor\",\n  \"amount\": 150.5,\n  \"description\": \"Pagamento do pedido #123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /send-copy-button",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/send-copy-button",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "send-copy-button"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"instanceId\": \"uuid-da-instancia\",\n  \"number\": \"5511999999999\",\n  \"text\": \"Aqui está seu código PIX:\",\n  \"buttonText\": \"Copiar Código PIX\",\n  \"copyContent\": \"00020126580014BR.GOV.BCB.PIX...\",\n  \"imageButton\": \"https://exemplo.com/imagem.jpg\", // opcional\n  \"footerText\": \"Clique para copiar\" // opcional\n}\n\n// Ou via multipart/form-data para upload de arquivo:\n// - instanceId, number, text, buttonText, copyContent: campos de texto\n// - footerText: campo de texto opcional\n// - image: arquivo de imagem (JPG, PNG, WEBP, GIF)",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Presença",
+      "item": [
+        {
+          "name": "POST /send-chat-presence",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/send-chat-presence",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "send-chat-presence"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"uuid\": \"fea7393c-61d3-4fa2-9b40-d2309f7d4e21\",\n  \"number\": \"5511999999999\",\n  \"chatId\": \"5511999999999@s.whatsapp.net\",\n  \"presence\": \"composing\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /set-instance-presence",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/set-instance-presence",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "set-instance-presence"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"uuid\": \"fea7393c-61d3-4fa2-9b40-d2309f7d4e21\",\n  \"presence\": \"available\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Pagamentos",
+      "item": [
+        {
+          "name": "POST /send-request-payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/send-request-payment",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "send-request-payment"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"instanceId\": \"uuid-da-instancia\",\n  \"number\": \"5511999999999\",\n  \"amount\": 199.90,\n  \"title\": \"Detalhes do pedido\",\n  \"text\": \"Pedido #123 pronto para pagamento\",\n  \"footer\": \"Loja Exemplo\",\n  \"itemName\": \"Assinatura Plano Ouro\",\n  \"invoiceNumber\": \"PED-123\",\n  \"pixKey\": \"123e4567-e89b-12d3-a456-426614174000\",\n  \"pixType\": \"EVP\",\n  \"pixName\": \"Nome do Recebedor\",\n  \"paymentLink\": \"https://pagamentos.exemplo.com/checkout/abc\",\n  \"fileUrl\": \"https://cdn.exemplo.com/boleto-123.pdf\",\n  \"fileName\": \"boleto-123.pdf\",\n  \"boletoCode\": \"34191.79001 01043.510047 91020.150008 5 91070026000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Templates",
+      "item": [
+        {
+          "name": "POST /sync-whatsapp-templates",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sync-whatsapp-templates",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sync-whatsapp-templates"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"instanceId\": \"uuid-da-instancia-cloudapi\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /send-template-message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/send-template-message",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "send-template-message"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"instanceId\": \"uuid-da-instancia-cloudapi\",\n  \"number\": \"5511999999999\",\n  \"templateName\": \"nome_do_template\",\n  \"languageCode\": \"pt_BR\",\n  \"components\": [\n    {\n      \"type\": \"header\",\n      \"parameters\": []\n    },\n    {\n      \"type\": \"body\",\n      \"parameters\": [\n        {\n          \"type\": \"text\",\n          \"text\": \"variavel_1\"\n        },\n        {\n          \"type\": \"text\",\n          \"text\": \"variavel_2\"\n        }\n      ]\n    },\n    {\n      \"type\": \"button\",\n      \"sub_type\": \"url\",\n      \"index\": 0,\n      \"parameters\": [\n        {\n          \"type\": \"text\",\n          \"text\": \"valor-dinamico-url\"\n        }\n      ]\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /send-text-message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/send-text-message",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "send-text-message"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"instanceId\": \"uuid-da-instancia-cloudapi\",\n  \"number\": \"5511999999999\",\n  \"text\": \"Sua mensagem aqui\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /send-media-message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/send-media-message",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "send-media-message"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"instanceId\": \"uuid-da-instancia-cloudapi\",\n  \"number\": \"5511999999999\",\n  \"type\": \"image\",  // image, video, audio, document\n  \"file\": \"https://url-publica.com/arquivo.jpg\",\n  \"text\": \"Legenda opcional\",\n  \"fileName\": \"nome-arquivo.pdf\"  // obrigatório para document\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Botões",
+      "item": [
+        {
+          "name": "POST /send-buttons-message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/send-buttons-message",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "send-buttons-message"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"instanceId\": \"uuid-da-instancia-zuckpro\",\n  \"number\": \"5511999999999\",\n  \"title\": \"Título da mensagem\",          // opcional\n  \"text\": \"Corpo da mensagem\",             // obrigatório quando não há mídia\n  \"footer\": \"Rodapé da mensagem\",          // opcional\n  \"image\": {                               // opcional - header com imagem\n    \"url\": \"https://url-da-imagem.jpg\"\n  },\n  \"buttons\": [                             // obrigatório, 1-5 botões\n    {\n      \"buttonId\": \"id_unico\",\n      \"buttonText\": { \"displayText\": \"Texto do Botão\" },\n      \"type\": \"reply\",                     // tipo do botão (ver abaixo)\n      // Campos adicionais dependem do tipo\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "SMS",
+      "item": [
+        {
+          "name": "POST /sms-send-message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sms-send-message",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sms-send-message"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"instance_id\": \"uuid-da-instancia-sms\",\n  \"receivers\": [\n    \"5511999999999\",\n    \"5511888888888\"\n  ],\n  \"content\": \"Olá! Esta é uma mensagem de teste via SmsPRO.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /sms-sync-status",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sms-sync-status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sms-sync-status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"instance_id\": \"uuid-da-instancia-sms\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://apicluster.euatendo.app"
+    },
+    {
+      "key": "api_token",
+      "value": "SEU_TOKEN_API"
+    }
+  ]
+}

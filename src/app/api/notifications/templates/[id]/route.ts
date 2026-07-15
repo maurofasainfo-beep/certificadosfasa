@@ -25,7 +25,7 @@ export async function PUT(request: NextRequest, { params }: TemplateRouteProps) 
   const parsed = templateUpdateSchema.safeParse(body);
 
   if (!parsed.success) {
-    return jsonError(parsed.error.issues[0]?.message ?? "Dados invalidos.", 400, "validacao");
+    return jsonError(parsed.error.issues[0]?.message ?? "Dados inválidos.", 400, "validacao");
   }
 
   const { id } = await params;
@@ -37,16 +37,22 @@ export async function PUT(request: NextRequest, { params }: TemplateRouteProps) 
     .maybeSingle();
 
   if (currentError || !currentTemplate) {
-    return jsonError("Template nao encontrado.", 404, "template_nao_encontrado");
+    return jsonError("Template não encontrado.", 404, "template_nao_encontrado");
   }
 
   try {
-    validateTemplateContent(
-      parsed.data.content,
-      currentTemplate.type === "certificate_expired" ? "certificate_expired" : "certificate_expiring",
-    );
+    const templateType = [
+      "certificate_expiring",
+      "certificate_expired",
+      "client_certificate_expiring",
+      "client_certificate_expired",
+    ].includes(currentTemplate.type)
+      ? currentTemplate.type
+      : "certificate_expiring";
+
+    validateTemplateContent(parsed.data.content, templateType as Parameters<typeof validateTemplateContent>[1]);
   } catch (error) {
-    return jsonError(error instanceof Error ? error.message : "Template invalido.", 400, "template_invalido");
+    return jsonError(error instanceof Error ? error.message : "Template inválido.", 400, "template_invalido");
   }
 
   const { data, error } = await admin

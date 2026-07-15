@@ -28,8 +28,8 @@ export default async function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#f6f9ff] px-4 py-10">
-      <section className="w-full max-w-md rounded-3xl border border-blue-100/70 bg-white p-6 shadow-xl shadow-blue-950/10 ring-1 ring-white/80">
+    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
+      <section className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-950/10">
         <div className="mb-7">
           <FasaLogo className="mb-5 h-12 w-12" priority />
           <p className="text-sm font-semibold text-blue-700">Fasa Informática</p>

@@ -16,7 +16,7 @@ export default async function NovoCertificadoPage({ searchParams }: NovoCertific
   const supabase = await createServerSupabaseClient();
   const { data: clients } = await supabase
     .from("clientes")
-    .select("id, nome_razao_social, cnpj, email, telefone, whatsapp, responsavel, observacoes")
+    .select("id, nome_razao_social, cnpj, email, telefone, whatsapp, whatsapp_notifications_enabled, responsavel, observacoes")
     .order("nome_razao_social", { ascending: true });
 
   return (

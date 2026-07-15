@@ -1,0 +1,81 @@
+# Frontend
+
+Documento especifico. A fonte oficial completa continua sendo [`SYSTEM_CONTEXT.md`](SYSTEM_CONTEXT.md).
+
+## Rotas principais
+
+- `/login`: autenticacao.
+- `/dashboard`: metricas do sistema.
+- `/clientes`: listagem e cadastro de clientes.
+- `/certificados`: listagem de certificados.
+- `/certificados/novo`: upload individual.
+- `/certificados/importar`: importacao em massa.
+- `/certificados/[id]`: detalhe, link publico, edicao de cliente e aviso manual.
+- `/notificacoes`: eventos, destinatarios e status.
+- `/configuracoes`: configuracoes de avisos e templates.
+- `/whatsapp`: homologacao e monitoramento euAtendo.
+- `/download/[token]`: download publico.
+
+## Componentes
+
+- Layout: `src/components/layout`.
+- UI base: `src/components/ui`.
+- Marca: `src/components/brand`.
+- Formularios de certificado: `src/app/(internal)/certificados/**`.
+- Painel WhatsApp: `src/app/(internal)/whatsapp/canal-whatsapp-panel.tsx`.
+
+## Padrao
+
+- Telas internas usam Server Components quando possivel.
+- Componentes interativos ficam como Client Components locais.
+- Acoes sensiveis chamam APIs server-side.
+- Dados secretos nunca sao expostos ao browser.
+
+## Refatoracao visual e UX
+
+Atualizacao de 2026-07-15:
+
+- O painel passou a seguir uma hierarquia operacional: atencoes primeiro, estado da operacao depois, indicadores principais e dados de apoio em seguida.
+- A navegacao usa os termos Visao geral, Certificados, Clientes, Central de avisos, WhatsApp e Configuracoes.
+- O shell interno tem sidebar mais discreta no desktop e drawer acessivel no mobile.
+- Cabecalhos de pagina usam `SectionHeader` com titulo, subtitulo e acoes consistentes.
+- KPIs usam `StatCard` com icone, numero, rotulo direto e contexto curto.
+- Tabelas usam `DataTable`, cabecalho sticky, `scope="col"`, linhas mais escaneaveis e cards responsivos no mobile quando necessario.
+- Filtros usam `FilterBar`, busca principal, contador de resultados e acoes Aplicar filtros/Limpar filtros.
+- Estados vazios usam `EmptyState` com titulo especifico, descricao e acao quando aplicavel.
+- Feedbacks de erro e processamento usam mensagens orientadas a acao, sem stack trace, token, service role, storage path ou payload bruto do provider.
+- Dias de aviso em Configuracoes sao editados como chips numericos, mantendo o contrato de API como array de numeros.
+
+## Tokens visuais
+
+- Background geral: neutro frio (`--color-background`).
+- Superficie: branco ou `--color-surface-muted`.
+- Texto principal: `--color-text-primary`; texto auxiliar: `--color-text-secondary`.
+- Borda: `--color-border-subtle`.
+- Acao principal: azul institucional existente.
+- Status: verde para sucesso, ambar para atencao, vermelho para falha e cinza para neutro.
+- Raios: `rounded-xl`/`rounded-2xl` para controles e cards; evitar `rounded-3xl` em novas superficies.
+- Sombras: discretas, preferindo borda e contraste de superficie.
+
+## Vocabulário de interface
+
+- Painel deve aparecer como Visao geral quando o contexto permitir.
+- Avisos deve aparecer como Central de avisos no titulo da tela.
+- Canal WhatsApp deve aparecer como Automacao do WhatsApp no titulo da rota.
+- API configurada deve aparecer como Integracao configurada.
+- Instancia deve aparecer como Instancia conectada quando for status operacional.
+- Pendentes deve aparecer como Mensagens na fila.
+- Falhas deve aparecer como Envios com falha quando o contexto for envio.
+- Testar conexao deve aparecer como Validar conexao.
+- Enviar teste deve aparecer como Enviar mensagem de teste.
+- Verificar deve aparecer como Verificar numero.
+- Filtrar deve aparecer como Aplicar filtros quando houver formulario de filtros.
+
+## Cuidados
+
+- Nao exibir senha real do PFX.
+- Nao exibir `storage_path` utilizavel.
+- Nao expor token euAtendo ou service role.
+- Confirmar responsividade em tabelas e acoes compactas.
+- Manter textos de erro sem detalhes sensiveis.
+- Confirmar contraste, foco visivel, labels de formulario, `aria-current`, `aria-expanded`, `role="alert"` e `role="status"` nas telas alteradas.

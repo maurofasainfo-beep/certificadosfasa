@@ -2,10 +2,9 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const protectedPrefixes = ["/dashboard", "/certificados", "/clientes", "/notificacoes", "/whatsapp", "/configuracoes"];
 const authPrefixes = ["/login"];
-const botApiPrefixes = ["/api/whatsapp-bot"];
 const cronApiPrefixes = ["/api/cron"];
 const publicDownloadPrefixes = ["/download", "/api/download"];
-const publicApiPrefixes = [...botApiPrefixes, ...cronApiPrefixes, ...publicDownloadPrefixes];
+const publicApiPrefixes = [...cronApiPrefixes, ...publicDownloadPrefixes];
 
 const staticAssetPattern = /\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|map|txt|xml|woff2?)$/i;
 
@@ -24,7 +23,6 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isProtectedRoute = startsWithAny(pathname, protectedPrefixes);
   const isAuthRoute = startsWithAny(pathname, authPrefixes);
-  const isApiBotRoute = startsWithAny(pathname, botApiPrefixes);
   const isCronRoute = startsWithAny(pathname, cronApiPrefixes);
   const isDownloadRoute = startsWithAny(pathname, publicDownloadPrefixes);
   const isStaticAsset =
@@ -36,7 +34,6 @@ export async function middleware(request: NextRequest) {
   const isPublicRoute =
     pathname === "/" ||
     isStaticAsset ||
-    isApiBotRoute ||
     isCronRoute ||
     isDownloadRoute ||
     startsWithAny(pathname, publicApiPrefixes);

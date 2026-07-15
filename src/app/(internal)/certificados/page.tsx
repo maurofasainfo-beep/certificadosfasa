@@ -1,6 +1,7 @@
 import { FolderUp, Upload } from "lucide-react";
 import Link from "next/link";
 
+import { ManualNoticeButton } from "@/app/(internal)/certificados/manual-notice-button";
 import { buttonClass, inputClass, selectClass } from "@/components/ui/button-styles";
 import { TableBody, TableCell, TableHead, TableHeaderCell, TableShell } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -16,7 +17,14 @@ import { SETTINGS_ID } from "@/lib/notifications/engine";
 import { createPaginationMeta, parsePagination } from "@/lib/pagination";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { CertificadoStatus } from "@/lib/supabase/database.types";
-import { formatCertificateTitle, formatCnpj, formatDate, formatDateTime } from "@/lib/utils/format";
+import {
+  formatCertificateTitle,
+  formatCnpj,
+  formatDate,
+  formatDateTimeShort,
+  formatDisplayName,
+  formatRelativeExpiration,
+} from "@/lib/utils/format";
 
 type CertificadosPageProps = {
   searchParams: Promise<{
@@ -33,7 +41,6 @@ function cleanSearch(value?: string) {
 
 type FilterableQuery = {
   eq: (column: string, value: string) => FilterableQuery;
-  neq: (column: string, value: string) => FilterableQuery;
   gte: (column: string, value: string) => FilterableQuery;
   lt: (column: string, value: string) => FilterableQuery;
   lte: (column: string, value: string) => FilterableQuery;
@@ -60,6 +67,12 @@ function applyStatusFilter<T extends FilterableQuery>(query: T, status: Certific
   }
 
   return query;
+}
+
+function calculateRemainingDays(expirationDate: string, today: string) {
+  return Math.round(
+    (new Date(`${expirationDate}T00:00:00`).getTime() - new Date(`${today}T00:00:00`).getTime()) / 86_400_000,
+  );
 }
 
 export default async function CertificadosPage({ searchParams }: CertificadosPageProps) {
@@ -108,38 +121,41 @@ export default async function CertificadosPage({ searchParams }: CertificadosPag
       ? certificado.status
       : calculateCertificateStatus(certificado.data_vencimento, warningDays, timezone),
     renovado: wasCertificateRenewed(certificado.created_at, certificado.ultimo_upload_em),
+    dias_restantes: calculateRemainingDays(certificado.data_vencimento, today),
   }));
   const paginationMeta = createPaginationMeta(count, pagination.page, pagination.pageSize);
+  const hasFilters = Boolean(search || selectedStatus);
 
   return (
     <section>
       <SectionHeader
         title="Certificados"
-        description="Acompanhe vencimentos, status e ações de renovação dos certificados cadastrados."
+        description="Gerencie certificados, acompanhe vencimentos e inicie ações de renovação."
         actions={
           user.role === "admin" ? (
             <>
-              <Link href="/certificados/importar" className={buttonClass("secondary", "w-full sm:w-auto")}>
-                <FolderUp aria-hidden="true" className="h-4 w-4" />
-                Carga em massa
-              </Link>
               <Link href="/certificados/novo" className={buttonClass("primary", "w-full sm:w-auto")}>
                 <Upload aria-hidden="true" className="h-4 w-4" />
-                Novo upload
+                Novo certificado
+              </Link>
+              <Link href="/certificados/importar" className={buttonClass("secondary", "w-full sm:w-auto")}>
+                <FolderUp aria-hidden="true" className="h-4 w-4" />
+                Importar certificados
               </Link>
             </>
           ) : null
         }
       />
-      <FilterBar columns="md:grid-cols-[minmax(320px,1fr)_240px_auto]">
+      <FilterBar columns="md:grid-cols-[minmax(320px,1fr)_240px_auto_auto]">
         <input
           type="search"
           name="q"
           defaultValue={search}
-          placeholder="Buscar por titular ou CNPJ"
+          placeholder="Buscar por titular, cliente ou CNPJ"
           className={inputClass}
+          aria-label="Buscar certificados"
         />
-        <select name="status" defaultValue={selectedStatus} className={selectClass}>
+        <select name="status" defaultValue={selectedStatus} className={selectClass} aria-label="Filtrar por status">
           <option value="">Todos os status</option>
           {CERTIFICATE_STATUSES.map((status) => (
             <option key={status} value={status}>
@@ -148,26 +164,48 @@ export default async function CertificadosPage({ searchParams }: CertificadosPag
           ))}
         </select>
         <button type="submit" className={buttonClass("secondary", "h-10")}>
-          Filtrar
+          Aplicar filtros
         </button>
+        {hasFilters ? (
+          <Link href="/certificados" className={buttonClass("ghost", "h-10")}>
+            Limpar filtros
+          </Link>
+        ) : null}
       </FilterBar>
 
       {!certificadosWithStatus.length ? (
-        <EmptyState title="Nenhum certificado encontrado" description="Ajuste os filtros ou envie um novo certificado para iniciar o controle." />
+        <EmptyState
+          title={hasFilters ? "Nenhum resultado encontrado" : "Nenhum certificado cadastrado"}
+          description={
+            hasFilters
+              ? "Revise o termo pesquisado ou limpe os filtros."
+              : "Envie o primeiro certificado para começar a acompanhar vencimentos."
+          }
+          action={
+            user.role === "admin" && !hasFilters ? (
+              <Link href="/certificados/novo" className={buttonClass("primary")}>
+                Enviar certificado
+              </Link>
+            ) : null
+          }
+        />
       ) : (
         <div className="grid gap-3">
           <div className="grid gap-3 md:hidden">
             {certificadosWithStatus.map((certificado) => (
               <article
                 key={certificado.id}
-                className="rounded-2xl border border-blue-100/70 bg-white p-3 shadow-sm shadow-blue-950/5 ring-1 ring-white/80"
+                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/5"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h3 className="line-clamp-2 text-sm font-semibold leading-5 text-slate-950">
+                    <h2 className="line-clamp-2 text-sm font-semibold leading-5 text-slate-950">
                       {formatCertificateTitle(certificado.nome_titular, certificado.cnpj)}
-                    </h3>
-                    <p className="mt-1 text-xs text-slate-500">{certificado.clientes?.nome_razao_social ?? "Cliente não vinculado"}</p>
+                    </h2>
+                    <p className="mt-1 text-xs text-slate-500">{formatCnpj(certificado.cnpj)}</p>
+                    <p className="mt-1 text-sm text-slate-700">
+                      {formatDisplayName(certificado.clientes?.nome_razao_social ?? "Cliente não vinculado")}
+                    </p>
                   </div>
                   <div className="flex flex-wrap justify-end gap-1.5">
                     <StatusBadge status={certificado.status} />
@@ -176,23 +214,23 @@ export default async function CertificadosPage({ searchParams }: CertificadosPag
                 </div>
 
                 <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
-                  <div className="rounded-2xl bg-blue-50/65 p-2">
-                    <dt className="text-[11px] font-semibold uppercase tracking-wide text-blue-700">CNPJ</dt>
-                    <dd className="mt-1 text-slate-800">{formatCnpj(certificado.cnpj)}</dd>
-                  </div>
-                  <div className="rounded-2xl bg-slate-50 p-2">
+                  <div className="rounded-xl bg-slate-50 p-3">
                     <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Vencimento</dt>
                     <dd className="mt-1 font-semibold text-slate-950">{formatDate(certificado.data_vencimento)}</dd>
+                    <dd className="text-xs text-slate-500">{formatRelativeExpiration(certificado.dias_restantes)}</dd>
                   </div>
-                  <div className="col-span-2 rounded-2xl bg-slate-50 p-2">
-                    <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Último upload</dt>
-                    <dd className="mt-1 text-slate-800">{formatDateTime(certificado.ultimo_upload_em)}</dd>
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Atualizado em</dt>
+                    <dd className="mt-1 text-slate-800">{formatDateTimeShort(certificado.ultimo_upload_em)}</dd>
                   </div>
                 </dl>
 
-                <Link className={buttonClass("secondary", "mt-3 min-h-10 w-full px-3 text-sm")} href={`/certificados/${certificado.id}`}>
-                  Abrir detalhes
-                </Link>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  <Link className={buttonClass("secondary", "min-h-10 w-full px-3 text-sm")} href={`/certificados/${certificado.id}`}>
+                    Ver detalhes
+                  </Link>
+                  {user.role === "admin" ? <ManualNoticeButton certificadoId={certificado.id} /> : null}
+                </div>
               </article>
             ))}
           </div>
@@ -203,33 +241,40 @@ export default async function CertificadosPage({ searchParams }: CertificadosPag
                 <tr>
                   <TableHeaderCell>Titular</TableHeaderCell>
                   <TableHeaderCell>Cliente</TableHeaderCell>
-                  <TableHeaderCell>CNPJ</TableHeaderCell>
                   <TableHeaderCell>Vencimento</TableHeaderCell>
                   <TableHeaderCell>Status</TableHeaderCell>
-                  <TableHeaderCell>Último upload</TableHeaderCell>
+                  <TableHeaderCell>Atualização</TableHeaderCell>
                   <TableHeaderCell>Ações</TableHeaderCell>
                 </tr>
               </TableHead>
               <TableBody>
                 {certificadosWithStatus.map((certificado) => (
-                  <tr key={certificado.id} className="transition duration-200 hover:bg-blue-50/48">
-                    <TableCell className="font-semibold text-slate-950">
-                      {formatCertificateTitle(certificado.nome_titular, certificado.cnpj)}
+                  <tr key={certificado.id} className="transition duration-150 hover:bg-slate-50">
+                    <TableCell className="max-w-[320px]">
+                      <p className="font-semibold text-slate-950">{formatCertificateTitle(certificado.nome_titular, certificado.cnpj)}</p>
+                      <p className="mt-1 text-xs text-slate-500">{formatCnpj(certificado.cnpj)}</p>
                     </TableCell>
-                    <TableCell className="text-slate-700">{certificado.clientes?.nome_razao_social ?? "-"}</TableCell>
-                    <TableCell className="text-slate-700">{formatCnpj(certificado.cnpj)}</TableCell>
-                    <TableCell className="text-slate-700">{formatDate(certificado.data_vencimento)}</TableCell>
+                    <TableCell className="max-w-[300px] text-slate-700">
+                      <p className="line-clamp-2">{formatDisplayName(certificado.clientes?.nome_razao_social ?? "Cliente não vinculado")}</p>
+                    </TableCell>
+                    <TableCell className="text-slate-700">
+                      <p className="font-medium text-slate-950">{formatDate(certificado.data_vencimento)}</p>
+                      <p className="mt-1 text-xs text-slate-500">{formatRelativeExpiration(certificado.dias_restantes)}</p>
+                    </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1.5">
                         <StatusBadge status={certificado.status} />
                         {certificado.renovado ? <Badge tone="blue">Atualizado</Badge> : null}
                       </div>
                     </TableCell>
-                    <TableCell className="text-slate-700">{formatDateTime(certificado.ultimo_upload_em)}</TableCell>
+                    <TableCell className="text-slate-700">{formatDateTimeShort(certificado.ultimo_upload_em)}</TableCell>
                     <TableCell>
-                      <Link className={buttonClass("secondary", "min-h-8 px-3 text-xs")} href={`/certificados/${certificado.id}`}>
-                        Abrir detalhes
-                      </Link>
+                      <div className="flex flex-wrap items-start gap-2">
+                        <Link className={buttonClass("secondary", "min-h-8 px-3 text-xs")} href={`/certificados/${certificado.id}`}>
+                          Ver detalhes
+                        </Link>
+                        {user.role === "admin" ? <ManualNoticeButton certificadoId={certificado.id} /> : null}
+                      </div>
                     </TableCell>
                   </tr>
                 ))}

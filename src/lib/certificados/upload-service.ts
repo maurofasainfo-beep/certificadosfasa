@@ -46,6 +46,7 @@ export type CertificateUploadClientData = {
   email?: string | null;
   telefone?: string | null;
   whatsapp?: string | null;
+  whatsapp_notifications_enabled?: boolean;
   responsavel?: string | null;
   observacoes?: string | null;
 };
@@ -172,7 +173,7 @@ export async function registerCertificateUpload({
   }
 
   if (!isPfxUploadFile(fileName, buffer)) {
-    fail("Senha incorreta ou certificado invalido.", 400, "pfx_invalido");
+    fail("Senha incorreta ou certificado inválido.", 400, "pfx_invalido");
   }
 
   let parsedPfx;
@@ -181,10 +182,10 @@ export async function registerCertificateUpload({
     parsedPfx = parsePfx(buffer, password);
   } catch (error) {
     if (error instanceof PfxParseError) {
-      fail("Senha incorreta ou certificado invalido.", 400, "pfx_invalido");
+      fail("Senha incorreta ou certificado inválido.", 400, "pfx_invalido");
     }
 
-    fail("Senha incorreta ou certificado invalido.", 400, "pfx_invalido");
+    fail("Senha incorreta ou certificado inválido.", 400, "pfx_invalido");
   }
 
   let cnpj = parsedPfx.cnpj ?? normalizeCnpj(clientData.cnpj_manual);
@@ -234,7 +235,7 @@ export async function registerCertificateUpload({
   if (preserveExistingClientData) {
     const { data: existingClient } = await admin
       .from("clientes")
-      .select("nome_razao_social, email, telefone, whatsapp, responsavel, observacoes")
+      .select("nome_razao_social, email, telefone, whatsapp, whatsapp_notifications_enabled, responsavel, observacoes")
       .eq("cnpj", cnpj)
       .maybeSingle();
 
@@ -245,6 +246,8 @@ export async function registerCertificateUpload({
         email: existingClient.email ?? clientData.email ?? null,
         telefone: existingClient.telefone ?? clientData.telefone ?? null,
         whatsapp: existingClient.whatsapp ?? clientData.whatsapp ?? null,
+        whatsapp_notifications_enabled:
+          existingClient.whatsapp_notifications_enabled ?? clientData.whatsapp_notifications_enabled ?? true,
         responsavel: existingClient.responsavel ?? clientData.responsavel ?? null,
         observacoes: existingClient.observacoes ?? clientData.observacoes ?? null,
       };
@@ -327,6 +330,7 @@ export async function registerCertificateUpload({
     p_email: effectiveClientData.email ?? null,
     p_telefone: effectiveClientData.telefone ?? null,
     p_whatsapp: effectiveClientData.whatsapp ?? null,
+    p_whatsapp_notifications_enabled: effectiveClientData.whatsapp_notifications_enabled ?? true,
     p_responsavel: effectiveClientData.responsavel ?? null,
     p_observacoes: effectiveClientData.observacoes ?? null,
     p_nome_titular: parsedPfx.nomeTitular,

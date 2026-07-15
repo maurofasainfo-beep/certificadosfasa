@@ -21,7 +21,14 @@ import { calculateCertificateStatus, getCertificateStatusReferenceDates } from "
 import { SETTINGS_ID } from "@/lib/notifications/engine";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { CertificadoStatus, Json } from "@/lib/supabase/database.types";
-import { formatCertificateTitle, formatCnpj, formatDate, formatDateTime, formatDaysLabel } from "@/lib/utils/format";
+import {
+  formatCertificateTitle,
+  formatCnpj,
+  formatDate,
+  formatDateTimeShort,
+  formatRelativeExpiration,
+} from "@/lib/utils/format";
+import { getEuAtendoConfigStatus } from "@/lib/whatsapp/euatendo/config";
 
 type AdminClient = ReturnType<typeof createSupabaseAdminClient>;
 
@@ -54,16 +61,9 @@ type DashboardMetrics = {
   falhas_hoje: number;
   avisos_planejados: number;
   ultimo_envio: string | null;
-  primary_device: {
-    name: string | null;
-    status: string | null;
-    last_seen_at: string | null;
-    online: boolean;
-  } | null;
-  status_bot: boolean;
+  status_canal_whatsapp: boolean;
   mensagens_aguardando: number;
   enviadas_hoje: number;
-  falhas_bot: number;
   status_chart: ChartItem[];
   expiration_chart: ChartItem[];
   attention_certificates: DashboardAttentionCertificate[];
@@ -80,19 +80,17 @@ const emptyMetrics: DashboardMetrics = {
   falhas_hoje: 0,
   avisos_planejados: 0,
   ultimo_envio: null,
-  primary_device: null,
-  status_bot: false,
+  status_canal_whatsapp: false,
   mensagens_aguardando: 0,
   enviadas_hoje: 0,
-  falhas_bot: 0,
   status_chart: [
-    { name: "Válidos", value: 0, color: "#16A34A" },
-    { name: "Vencendo", value: 0, color: "#F59E0B" },
+    { name: "Válidos", value: 0, color: "#15803D" },
+    { name: "Vencem em breve", value: 0, color: "#D97706" },
     { name: "Vencidos", value: 0, color: "#DC2626" },
   ],
   expiration_chart: [
     { name: "Vencidos", value: 0, color: "#DC2626" },
-    { name: "7 dias", value: 0, color: "#F59E0B" },
+    { name: "7 dias", value: 0, color: "#D97706" },
     { name: "15 dias", value: 0, color: "#2563EB" },
     { name: "30 dias", value: 0, color: "#60A5FA" },
   ],
@@ -114,8 +112,9 @@ function normalizeChartName(value: unknown) {
 
   const labels: Record<string, string> = {
     Validos: "Válidos",
+    "Válidos": "Válidos",
     Vencidos: "Vencidos",
-    Vencendo: "Vencendo",
+    Vencendo: "Vencem em breve",
   };
 
   return labels[value] ?? value;
@@ -138,16 +137,6 @@ function normalizeMetrics(value: Json | null): DashboardMetrics {
     return emptyMetrics;
   }
 
-  const primaryDeviceValue = value.primary_device;
-  const primaryDevice = isRecord(primaryDeviceValue)
-    ? {
-        name: typeof primaryDeviceValue.name === "string" ? primaryDeviceValue.name : null,
-        status: typeof primaryDeviceValue.status === "string" ? primaryDeviceValue.status : null,
-        last_seen_at: typeof primaryDeviceValue.last_seen_at === "string" ? primaryDeviceValue.last_seen_at : null,
-        online: primaryDeviceValue.online === true,
-      }
-    : null;
-
   return {
     total_certificados: toNumber(value.total_certificados),
     certificados_validos: toNumber(value.certificados_validos),
@@ -159,11 +148,9 @@ function normalizeMetrics(value: Json | null): DashboardMetrics {
     falhas_hoje: toNumber(value.falhas_hoje),
     avisos_planejados: toNumber(value.avisos_planejados),
     ultimo_envio: typeof value.ultimo_envio === "string" ? value.ultimo_envio : null,
-    primary_device: primaryDevice,
-    status_bot: value.status_bot === true,
+    status_canal_whatsapp: value.status_canal_whatsapp === true,
     mensagens_aguardando: toNumber(value.mensagens_aguardando),
     enviadas_hoje: toNumber(value.enviadas_hoje),
-    falhas_bot: toNumber(value.falhas_bot),
     status_chart: toChartItems(value.status_chart, emptyMetrics.status_chart),
     expiration_chart: toChartItems(value.expiration_chart, emptyMetrics.expiration_chart),
     attention_certificates: Array.isArray(value.attention_certificates)
@@ -172,11 +159,14 @@ function normalizeMetrics(value: Json | null): DashboardMetrics {
   };
 }
 
-function buildChartsFromCertificates(certificates: DashboardAttentionCertificate[], counts: Pick<DashboardMetrics, "certificados_validos" | "certificados_vencendo" | "certificados_vencidos">) {
+function buildChartsFromCertificates(
+  certificates: DashboardAttentionCertificate[],
+  counts: Pick<DashboardMetrics, "certificados_validos" | "certificados_vencendo" | "certificados_vencidos">,
+) {
   return {
     statusChart: [
-      { name: "Válidos", value: counts.certificados_validos, color: "#16A34A" },
-      { name: "Vencendo", value: counts.certificados_vencendo, color: "#F59E0B" },
+      { name: "Válidos", value: counts.certificados_validos, color: "#15803D" },
+      { name: "Vencem em breve", value: counts.certificados_vencendo, color: "#D97706" },
       { name: "Vencidos", value: counts.certificados_vencidos, color: "#DC2626" },
     ],
     expirationChart: [
@@ -184,7 +174,7 @@ function buildChartsFromCertificates(certificates: DashboardAttentionCertificate
       {
         name: "7 dias",
         value: certificates.filter((item) => item.dias_restantes >= 0 && item.dias_restantes <= 7).length,
-        color: "#F59E0B",
+        color: "#D97706",
       },
       {
         name: "15 dias",
@@ -210,7 +200,7 @@ async function loadDashboardMetricsFallback(admin: AdminClient): Promise<Dashboa
   const timezone = settings?.timezone ?? "America/Sao_Paulo";
   const { today, warningDays: maxWarningDays } = getCertificateStatusReferenceDates(warningDays, timezone);
 
-  const [certificatesResult, plannedResult, todayResult, waitingResult, sentTodayResult, failedResult, failedTodayResult, lastSentResult, deviceResult] =
+  const [certificatesResult, plannedResult, todayResult, waitingResult, sentTodayResult, failedResult, failedTodayResult, lastSentResult] =
     await Promise.all([
       admin
         .from("certificados")
@@ -250,14 +240,6 @@ async function loadDashboardMetricsFallback(admin: AdminClient): Promise<Dashboa
         .order("sent_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
-      admin
-        .from("whatsapp_devices")
-        .select("name, status, last_seen_at")
-        .eq("is_primary_sender", true)
-        .neq("status", "revoked")
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
     ]);
 
   const mappedCertificates = (certificatesResult.data ?? []).map((certificado) => {
@@ -285,18 +267,6 @@ async function loadDashboardMetricsFallback(admin: AdminClient): Promise<Dashboa
     certificados_vencidos: mappedCertificates.filter((item) => item.status === "vencido").length,
   };
   const charts = buildChartsFromCertificates(mappedCertificates, counts);
-  const deviceLastSeenAt = deviceResult.data?.last_seen_at ?? null;
-  const primaryDevice = deviceResult.data
-    ? {
-        name: deviceResult.data.name,
-        status: deviceResult.data.status,
-        last_seen_at: deviceLastSeenAt,
-        online:
-          deviceResult.data.status === "active" &&
-          deviceLastSeenAt !== null &&
-          new Date(deviceLastSeenAt).getTime() >= Date.now() - 5 * 60 * 1000,
-      }
-    : null;
 
   return {
     ...emptyMetrics,
@@ -308,15 +278,14 @@ async function loadDashboardMetricsFallback(admin: AdminClient): Promise<Dashboa
     falhas_hoje: failedTodayResult.count ?? 0,
     avisos_planejados: plannedResult.count ?? 0,
     ultimo_envio: lastSentResult.data?.sent_at ?? null,
-    primary_device: primaryDevice,
-    status_bot: primaryDevice?.online ?? false,
+    status_canal_whatsapp: getEuAtendoConfigStatus().enabled,
     mensagens_aguardando: waitingResult.count ?? 0,
     enviadas_hoje: sentTodayResult.count ?? 0,
-    falhas_bot: failedResult.count ?? 0,
     status_chart: charts.statusChart,
     expiration_chart: charts.expirationChart,
     attention_certificates: mappedCertificates
       .filter((item) => item.dias_restantes < 0 || (item.dias_restantes >= 0 && item.dias_restantes <= maxWarningDays))
+      .sort((left, right) => left.dias_restantes - right.dias_restantes)
       .slice(0, 6),
   };
 }
@@ -333,42 +302,52 @@ async function loadDashboardMetrics(admin: AdminClient) {
 
 export default async function DashboardPage() {
   const admin = createSupabaseAdminClient();
-  const metrics = await loadDashboardMetrics(admin);
+  const [metrics, euAtendoStateResult, euAtendoPendingResult] = await Promise.all([
+    loadDashboardMetrics(admin),
+    admin
+      .from("whatsapp_dispatcher_state")
+      .select("last_dispatch_at, next_allowed_send_at, locked_until, updated_at")
+      .eq("provider", "euatendo")
+      .maybeSingle(),
+    admin
+      .from("notification_events")
+      .select("id", { count: "exact", head: true })
+      .eq("provider", "euatendo")
+      .in("status", ["pending", "retry", "reserved", "processing"]),
+  ]);
+  const euAtendoConfig = getEuAtendoConfigStatus();
   const falhasHoje = metrics.falhas_hoje || metrics.falhas_envio;
 
   const attentionItems = [
-    ...metrics.attention_certificates.map((certificado) => ({
-      key: certificado.id,
-      title: formatCertificateTitle(certificado.nome_titular, certificado.cnpj),
-      description:
-        certificado.dias_restantes < 0
-          ? `Vencido há ${formatDaysLabel(Math.abs(certificado.dias_restantes))}`
-          : certificado.dias_restantes === 0
-            ? "Vence hoje"
-            : `Vence em ${formatDaysLabel(certificado.dias_restantes)}`,
-      meta: `${formatCnpj(certificado.cnpj)} - ${formatDate(certificado.data_vencimento)}`,
-      status: certificado.status,
-      href: `/certificados/${certificado.id}`,
-    })),
+    ...metrics.attention_certificates
+      .sort((left, right) => left.dias_restantes - right.dias_restantes)
+      .map((certificado) => ({
+        key: certificado.id,
+        title: formatCertificateTitle(certificado.nome_titular, certificado.cnpj),
+        description: formatRelativeExpiration(certificado.dias_restantes),
+        meta: `${formatCnpj(certificado.cnpj)} - ${formatDate(certificado.data_vencimento)}`,
+        status: certificado.status,
+        href: `/certificados/${certificado.id}`,
+      })),
     ...(metrics.falhas_envio
       ? [
           {
             key: "failed-messages",
-            title: "Falhas no envio de avisos",
-            description: `${metrics.falhas_envio} ${metrics.falhas_envio === 1 ? "aviso precisa" : "avisos precisam"} de revisão`,
-            meta: "Abra a aba Avisos para tentar novamente",
+            title: "Envios com falha",
+            description: `${metrics.falhas_envio} ${metrics.falhas_envio === 1 ? "aviso precisa" : "avisos precisam"} de atenção`,
+            meta: "Abra a Central de avisos para revisar",
             status: "vencido" as const,
             href: "/notificacoes?status=failed",
           },
         ]
       : []),
-    ...(!metrics.status_bot
+    ...(!euAtendoConfig.enabled
       ? [
           {
-            key: "bot-offline",
-            title: "WhatsApp Bot desconectado",
-            description: "O envio automático depende do bot conectado",
-            meta: "Verifique a tela WhatsApp Bot",
+            key: "canal-whatsapp-pausado",
+            title: "Envio automático pausado",
+            description: "O envio pela euAtendo está desativado",
+            meta: "Valide a integração na tela de WhatsApp",
             status: "vencido" as const,
             href: "/whatsapp",
           },
@@ -379,70 +358,75 @@ export default async function DashboardPage() {
   return (
     <section>
       <SectionHeader
-        title="Painel"
-        description="Resumo dos certificados, vencimentos e avisos internos."
+        title="Visão geral"
+        description="Acompanhe certificados, vencimentos e o funcionamento dos avisos."
       />
 
-      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
-        <StatCard title="Total" value={metrics.total_certificados} description="Certificados" icon={FileKey2} tone="blue" />
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+        <StatCard title="Cadastrados" value={metrics.total_certificados} description="Certificados no sistema" icon={FileKey2} tone="blue" />
         <StatCard title="Válidos" value={metrics.certificados_validos} description="Fora da janela de aviso" icon={FileCheck2} tone="green" />
-        <StatCard title="Vencendo" value={metrics.certificados_vencendo} description="Dentro dos dias configurados" icon={CalendarClock} tone="amber" />
+        <StatCard title="Próximos" value={metrics.certificados_vencendo} description="Dentro da janela configurada" icon={CalendarClock} tone="amber" />
         <StatCard title="Vencidos" value={metrics.certificados_vencidos} description="Exigem ação" icon={XCircle} tone="red" />
-        <StatCard title="Avisos hoje" value={metrics.avisos_para_hoje} description="Prontos para envio" icon={Clock3} tone="blue" />
-        <StatCard title="Falhas" value={metrics.falhas_envio} description="Avisos com erro" icon={AlertTriangle} tone="red" />
+        <StatCard title="Na fila" value={metrics.avisos_para_hoje} description="Avisos prontos para envio" icon={Clock3} tone="blue" />
+        <StatCard title="Com falha" value={metrics.falhas_envio} description="Envios que precisam de revisão" icon={AlertTriangle} tone="red" />
       </div>
 
-      <div className="mt-3 grid gap-3 xl:grid-cols-2">
+      <div className="mt-4 grid gap-4 xl:grid-cols-2">
         <SectionCard>
-          <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h3 className="text-base font-semibold text-slate-950">Certificados por status</h3>
-              <p className="text-xs text-slate-500">Classificação calculada por data de vencimento.</p>
+              <h2 className="text-base font-semibold text-slate-950">Certificados por status</h2>
+              <p className="text-sm text-slate-500">Distribuição calculada pela data de vencimento.</p>
             </div>
-            <Badge tone="blue">Tempo real</Badge>
+            <Badge tone="blue">Atualizado agora</Badge>
           </div>
           <LazyDonutChart data={metrics.status_chart} total={metrics.total_certificados} />
-          <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
+          <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
             <RefreshCw className="h-3.5 w-3.5" />
-            Atualizado automaticamente
+            Atualização automática
           </div>
         </SectionCard>
 
         <SectionCard>
-          <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h3 className="text-base font-semibold text-slate-950">Vencimentos por período</h3>
-              <p className="text-xs text-slate-500">Distribuição dos certificados por janela.</p>
+              <h2 className="text-base font-semibold text-slate-950">Vencimentos por período</h2>
+              <p className="text-sm text-slate-500">Volume de certificados por janela de vencimento.</p>
             </div>
-            <Badge tone="slate">30 dias</Badge>
+            <Badge tone="slate">Próximos 30 dias</Badge>
           </div>
           <LazyExpirationBarChart data={metrics.expiration_chart} />
-          <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
+          <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
             <RefreshCw className="h-3.5 w-3.5" />
-            Atualizado automaticamente
+            Atualização automática
           </div>
         </SectionCard>
       </div>
 
-      <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
+      <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
         <SectionCard>
-          <div className="mb-2 flex items-center gap-2">
+          <div className="mb-3 flex items-center gap-2">
             <MessageCircleWarning className="h-4 w-4 text-red-500" />
-            <h3 className="text-base font-semibold text-slate-950">Precisa de atenção</h3>
+            <h2 className="text-base font-semibold text-slate-950">Precisa de atenção</h2>
           </div>
           {attentionItems.length === 0 ? (
             <EmptyState title="Nada urgente no momento" description="Nenhum certificado ou aviso crítico para revisar agora." />
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-blue-100/70 bg-white">
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
               {attentionItems.map((item) => (
-                <Link key={item.key} href={item.href} className="flex flex-col gap-2 border-b border-blue-100/70 px-3 py-2.5 outline-none last:border-b-0 transition duration-150 hover:bg-blue-50/55 focus-visible:bg-blue-50/70 focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-blue-100 sm:flex-row sm:items-center sm:justify-between">
+                <Link
+                  key={item.key}
+                  href={item.href}
+                  className="flex flex-col gap-2 border-b border-slate-100 px-4 py-3 outline-none transition duration-150 last:border-b-0 hover:bg-slate-50 focus-visible:bg-blue-50 focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-blue-100 sm:flex-row sm:items-center sm:justify-between"
+                >
                   <div className="min-w-0">
                     <p className="font-semibold text-slate-950" title={item.title}>{item.title}</p>
-                    <p className="text-sm text-slate-600">{item.description}</p>
+                    <p className="text-sm text-slate-700">{item.description}</p>
                     <p className="text-xs text-slate-500">{item.meta}</p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     <StatusBadge status={item.status} />
+                    <span className="sr-only">Ver detalhes</span>
                     <ArrowRight className="h-4 w-4 text-slate-400" aria-hidden="true" />
                   </div>
                 </Link>
@@ -454,33 +438,49 @@ export default async function DashboardPage() {
         <SectionCard>
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h3 className="text-base font-semibold text-slate-950">Avisos do dia</h3>
-              <p className="text-xs text-slate-500">Resumo da operação de hoje.</p>
+              <h2 className="text-base font-semibold text-slate-950">Avisos e WhatsApp</h2>
+              <p className="text-sm text-slate-500">Resumo da operação de hoje.</p>
             </div>
-            {!metrics.status_bot ? <Badge tone="red">Bot desconectado</Badge> : <Badge tone="green">Bot conectado</Badge>}
+            {!euAtendoConfig.enabled ? <Badge tone="red">Envio pausado</Badge> : <Badge tone="green">Envio ativo</Badge>}
           </div>
-          <div className="mt-3 grid grid-cols-2 gap-2.5">
-            <div className="rounded-2xl border border-blue-100 bg-blue-50/70 p-3">
-              <p className="text-xs font-semibold text-blue-700">Prontos</p>
-              <p className="mt-1 text-2xl font-semibold text-slate-950">{metrics.avisos_para_hoje}</p>
+          <div className="mt-4 grid grid-cols-2 gap-2.5">
+            <div className="rounded-xl border border-blue-100 bg-blue-50 p-3">
+              <p className="text-xs font-semibold text-blue-700">Mensagens na fila</p>
+              <p className="mt-1 text-2xl font-bold text-slate-950">{metrics.avisos_para_hoje}</p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-3">
-              <p className="text-xs font-semibold text-slate-600">Planejados</p>
-              <p className="mt-1 text-2xl font-semibold text-slate-950">{metrics.avisos_planejados}</p>
+            <div className="rounded-xl border border-slate-200 bg-white p-3">
+              <p className="text-xs font-semibold text-slate-600">Planejadas</p>
+              <p className="mt-1 text-2xl font-bold text-slate-950">{metrics.avisos_planejados}</p>
             </div>
-            <div className="rounded-2xl border border-green-100 bg-green-50/70 p-3">
-              <p className="text-xs font-semibold text-green-700">Enviados</p>
-              <p className="mt-1 text-2xl font-semibold text-slate-950">{metrics.enviadas_hoje}</p>
+            <div className="rounded-xl border border-green-100 bg-green-50 p-3">
+              <p className="text-xs font-semibold text-green-700">Enviadas hoje</p>
+              <p className="mt-1 text-2xl font-bold text-slate-950">{metrics.enviadas_hoje}</p>
             </div>
-            <div className="rounded-2xl border border-red-100 bg-red-50/70 p-3">
-              <p className="text-xs font-semibold text-red-700">Falhas</p>
-              <p className="mt-1 text-2xl font-semibold text-slate-950">{falhasHoje}</p>
+            <div className="rounded-xl border border-red-100 bg-red-50 p-3">
+              <p className="text-xs font-semibold text-red-700">Envios com falha</p>
+              <p className="mt-1 text-2xl font-bold text-slate-950">{falhasHoje}</p>
+            </div>
+            <div className="rounded-xl border border-blue-100 bg-blue-50 p-3">
+              <p className="text-xs font-semibold text-blue-700">Fila euAtendo</p>
+              <p className="mt-1 text-2xl font-bold text-slate-950">{euAtendoPendingResult.count ?? 0}</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white p-3">
+              <p className="text-xs font-semibold text-slate-600">Integração</p>
+              <p className="mt-1 text-sm font-semibold text-slate-950">{euAtendoConfig.enabled ? "Configurada" : "Pausada"}</p>
             </div>
           </div>
-          <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-600">
+          <div className="mt-3 grid gap-2 rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-600">
             <div className="flex items-center justify-between gap-3">
               <span>Último envio</span>
-              <span className="font-semibold text-slate-950">{metrics.ultimo_envio ? formatDateTime(metrics.ultimo_envio) : "Ainda não houve envio"}</span>
+              <span className="text-right font-semibold text-slate-950">
+                {metrics.ultimo_envio ? formatDateTimeShort(metrics.ultimo_envio) : "Ainda não houve envio"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span>Última sincronização</span>
+              <span className="text-right font-semibold text-slate-950">
+                {euAtendoStateResult.data?.last_dispatch_at ? formatDateTimeShort(euAtendoStateResult.data.last_dispatch_at) : "-"}
+              </span>
             </div>
           </div>
         </SectionCard>

@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
   const parsed = notificationRecipientSchema.safeParse(body);
 
   if (!parsed.success) {
-    return jsonError(parsed.error.issues[0]?.message ?? "Dados invalidos.", 400, "validacao");
+    return jsonError(parsed.error.issues[0]?.message ?? "Dados inválidos.", 400, "validacao");
   }
 
   const admin = createSupabaseAdminClient();

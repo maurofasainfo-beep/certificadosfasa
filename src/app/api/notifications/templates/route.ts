@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { jsonError } from "@/lib/api/errors";
 import { requireApiUser } from "@/lib/auth/api";
-import { ensureDefaultNotificationTemplate } from "@/lib/notifications/engine";
+import { ensureDefaultNotificationTemplates } from "@/lib/notifications/engine";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -14,7 +14,7 @@ export async function GET() {
     return auth.response;
   }
 
-  await ensureDefaultNotificationTemplate();
+  await ensureDefaultNotificationTemplates();
 
   const admin = createSupabaseAdminClient();
   const { data, error } = await admin

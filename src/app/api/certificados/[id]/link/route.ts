@@ -103,7 +103,7 @@ async function updateLinkPassword(certificadoId: string, userId: string, ip: str
     .maybeSingle();
 
   if (error || !link) {
-    return { response: jsonError("Nao existe link ativo para atualizar.", 404, "link_nao_encontrado") };
+    return { response: jsonError("Não existe link ativo para atualizar.", 404, "link_nao_encontrado") };
   }
 
   await admin.from("audit_logs").insert({

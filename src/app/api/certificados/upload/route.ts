@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
   try {
     formData = await request.formData();
   } catch {
-    return jsonError("Requisicao invalida.", 400, "form_data_invalido");
+    return jsonError("Requisição inválida.", 400, "form_data_invalido");
   }
 
   const file = formData.get("arquivo") ?? formData.get("file");
@@ -38,12 +38,13 @@ export async function POST(request: NextRequest) {
     email: formData.get("email"),
     telefone: formData.get("telefone"),
     whatsapp: formData.get("whatsapp"),
+    whatsapp_notifications_enabled: formData.get("whatsapp_notifications_enabled"),
     responsavel: formData.get("responsavel"),
     observacoes: formData.get("observacoes"),
   });
 
   if (!fields.success) {
-    return jsonError(fields.error.issues[0]?.message ?? "Dados invalidos.", 400, "validacao");
+    return jsonError(fields.error.issues[0]?.message ?? "Dados inválidos.", 400, "validacao");
   }
 
   if (!(file instanceof File)) {

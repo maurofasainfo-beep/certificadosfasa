@@ -23,6 +23,18 @@ const configurationBundleSchema = z.object({
       content: templateUpdateSchema.shape.content,
     })
     .optional(),
+  client_expiring_template: z
+    .object({
+      id: z.string().uuid(),
+      content: templateUpdateSchema.shape.content,
+    })
+    .optional(),
+  client_expired_template: z
+    .object({
+      id: z.string().uuid(),
+      content: templateUpdateSchema.shape.content,
+    })
+    .optional(),
 });
 
 function getRequestIp(request: NextRequest) {
@@ -40,7 +52,7 @@ export async function PUT(request: NextRequest) {
   const parsed = configurationBundleSchema.safeParse(body);
 
   if (!parsed.success) {
-    return jsonError(parsed.error.issues[0]?.message ?? "Dados invalidos.", 400, "validacao");
+    return jsonError(parsed.error.issues[0]?.message ?? "Dados inválidos.", 400, "validacao");
   }
 
   try {
@@ -51,8 +63,16 @@ export async function PUT(request: NextRequest) {
     if (parsed.data.expired_template) {
       validateTemplateContent(parsed.data.expired_template.content, "certificate_expired");
     }
+
+    if (parsed.data.client_expiring_template) {
+      validateTemplateContent(parsed.data.client_expiring_template.content, "client_certificate_expiring");
+    }
+
+    if (parsed.data.client_expired_template) {
+      validateTemplateContent(parsed.data.client_expired_template.content, "client_certificate_expired");
+    }
   } catch (error) {
-    return jsonError(error instanceof Error ? error.message : "Template invalido.", 400, "template_invalido");
+    return jsonError(error instanceof Error ? error.message : "Template inválido.", 400, "template_invalido");
   }
 
   const admin = createSupabaseAdminClient();
@@ -63,7 +83,7 @@ export async function PUT(request: NextRequest) {
     .single();
 
   if (settingsError || !settings) {
-    return jsonError("Falha ao salvar configuracoes de notificacao.", 500, "notification_settings_save");
+    return jsonError("Falha ao salvar configurações de notificação.", 500, "notification_settings_save");
   }
 
   const updatedTemplates = [];
@@ -95,6 +115,38 @@ export async function PUT(request: NextRequest) {
 
     if (error || !data) {
       return jsonError("Falha ao salvar o template de certificados vencidos.", 500, "template_salvar");
+    }
+
+    updatedTemplates.push(data);
+  }
+
+  if (parsed.data.client_expiring_template) {
+    const { data, error } = await admin
+      .from("notification_templates")
+      .update({ content: parsed.data.client_expiring_template.content })
+      .eq("id", parsed.data.client_expiring_template.id)
+      .eq("type", "client_certificate_expiring")
+      .select("id, type, title, content, active, created_at, updated_at")
+      .maybeSingle();
+
+    if (error || !data) {
+      return jsonError("Falha ao salvar o template de aviso ao cliente.", 500, "template_salvar");
+    }
+
+    updatedTemplates.push(data);
+  }
+
+  if (parsed.data.client_expired_template) {
+    const { data, error } = await admin
+      .from("notification_templates")
+      .update({ content: parsed.data.client_expired_template.content })
+      .eq("id", parsed.data.client_expired_template.id)
+      .eq("type", "client_certificate_expired")
+      .select("id, type, title, content, active, created_at, updated_at")
+      .maybeSingle();
+
+    if (error || !data) {
+      return jsonError("Falha ao salvar o template futuro de vencido ao cliente.", 500, "template_salvar");
     }
 
     updatedTemplates.push(data);

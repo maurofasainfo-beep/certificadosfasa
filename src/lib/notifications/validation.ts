@@ -5,8 +5,12 @@ import { normalizeBrazilianPhone } from "@/lib/utils/phone";
 export const EXPIRING_TEMPLATE_VARIABLES = [
   "cliente_nome",
   "cliente_telefone",
+  "telefone_cliente",
   "cnpj",
+  "cpf",
   "certificado_nome",
+  "nome_titular",
+  "empresa_nome",
   "data_vencimento",
   "dias",
 ] as const;
@@ -16,6 +20,15 @@ export const EXPIRED_TEMPLATE_VARIABLES = [
   "total_vencidos",
   "lista_certificados_vencidos",
   "cliente_telefone",
+  "telefone_cliente",
+  "cliente_nome",
+  "cnpj",
+  "cpf",
+  "certificado_nome",
+  "nome_titular",
+  "empresa_nome",
+  "data_vencimento",
+  "dias",
 ] as const;
 
 export const REQUIRED_TEMPLATE_VARIABLES = EXPIRING_TEMPLATE_VARIABLES;
@@ -50,7 +63,6 @@ export const notificationSettingsSchema = z
     delay_maximo_segundos: z.coerce.number().int().min(30).max(3600),
     max_attempts: z.coerce.number().int().min(1).max(10),
     polling_interval_seconds: z.coerce.number().int().min(5).max(25),
-    heartbeat_interval_seconds: z.coerce.number().int().min(15).max(300).default(30),
     send_window_start: z.string().trim().regex(/^\d{2}:\d{2}$/),
     send_window_end: z.string().trim().regex(/^\d{2}:\d{2}$/),
     timezone: z.string().trim().min(3).max(80).default("America/Sao_Paulo"),
@@ -77,10 +89,6 @@ export const templateUpdateSchema = z.object({
   content: z.string().trim().min(30, "O template deve ter ao menos 30 caracteres.").max(1600),
 });
 
-export const whatsappDeviceSchema = z.object({
-  name: z.string().trim().min(2, "Informe um nome para o dispositivo.").max(80),
-});
-
 export const notificationRecipientSchema = z.object({
   nome: z.string().trim().min(2, "Informe o nome do destinatario.").max(80),
   telefone: z
@@ -93,7 +101,7 @@ export const notificationRecipientSchema = z.object({
       } catch (error) {
         context.addIssue({
           code: "custom",
-          message: error instanceof Error ? error.message : "Informe um WhatsApp valido.",
+          message: error instanceof Error ? error.message : "Informe um WhatsApp válido.",
         });
         return z.NEVER;
       }
@@ -105,51 +113,3 @@ export const notificationRecipientUpdateSchema = notificationRecipientSchema.par
   (value) => Object.keys(value).length > 0,
   "Informe ao menos um campo para atualizar.",
 );
-
-export const botAuthValidateSchema = z.object({
-  token: z.string().trim().min(20).max(256),
-  signing_secret: z.string().trim().min(20).max(256),
-  app_version: z.string().trim().max(40).optional(),
-  browser_name: z.string().trim().max(80).optional(),
-  user_agent: z.string().trim().max(512).optional(),
-});
-
-export const botHeartbeatSchema = z.object({
-  whatsapp_status: z
-    .enum(["connected", "disconnected", "loading", "qr_required", "error", "sending", "syncing"])
-    .default("disconnected"),
-  connected_phone: z
-    .string()
-    .trim()
-    .optional()
-    .or(z.literal(""))
-    .transform((value, context) => {
-      if (!value) {
-        return null;
-      }
-
-      try {
-        return normalizeBrazilianPhone(value);
-      } catch (error) {
-        context.addIssue({
-          code: "custom",
-          message: error instanceof Error ? error.message : "Informe um WhatsApp valido.",
-        });
-        return z.NEVER;
-      }
-    }),
-  app_version: z.string().trim().max(40).optional(),
-  browser_name: z.string().trim().max(80).optional(),
-  user_agent: z.string().trim().max(512).optional(),
-  local_queue_size: z.coerce.number().int().min(0).max(1000).optional(),
-  last_error: z.string().trim().max(500).optional().or(z.literal("")),
-});
-
-export const botAckSchema = z.object({
-  status: z.enum(["processing", "sent", "failed"]),
-  reservation_id: z.string().uuid(),
-  reservation_token: z.string().trim().min(32).max(256),
-  provider_response: z.record(z.string(), z.unknown()).optional(),
-  error_message: z.string().trim().max(500).optional(),
-  retryable: z.boolean().optional(),
-});

@@ -15,12 +15,12 @@ function getBearerSecret(request: Request) {
   return request.headers.get("x-cron-secret")?.trim() ?? null;
 }
 
-export async function POST(request: Request) {
+async function handleCronRequest(request: Request) {
   const expectedSecret = getOptionalEnv("CRON_SECRET");
   const receivedSecret = getBearerSecret(request);
 
   if (!expectedSecret || !receivedSecret || receivedSecret !== expectedSecret) {
-    return NextResponse.json({ error: "Nao autorizado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
   }
 
   const result = await runDueNotificationJob({
@@ -28,4 +28,12 @@ export async function POST(request: Request) {
   });
 
   return NextResponse.json(result, { status: result.errors.length ? 207 : 200 });
+}
+
+export async function GET(request: Request) {
+  return handleCronRequest(request);
+}
+
+export async function POST(request: Request) {
+  return handleCronRequest(request);
 }

@@ -11,7 +11,7 @@ export function SectionCard({ children, className }: SectionCardProps) {
   return (
     <section
       className={cn(
-        "relative overflow-hidden rounded-2xl border border-blue-100/70 bg-white p-3 shadow-sm shadow-blue-950/5 ring-1 ring-white/80 transition duration-150 hover:border-blue-200 hover:shadow-md hover:shadow-blue-950/10 sm:p-4",
+        "relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/5 sm:p-5",
         className,
       )}
     >

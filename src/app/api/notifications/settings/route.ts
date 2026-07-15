@@ -19,7 +19,7 @@ export async function GET() {
   const { data, error } = await admin.from("notification_settings").select("*").eq("id", SETTINGS_ID).single();
 
   if (error || !data) {
-    return jsonError("Falha ao carregar configuracoes de notificacao.", 500, "notification_settings");
+    return jsonError("Falha ao carregar configurações de notificação.", 500, "notification_settings");
   }
 
   return NextResponse.json({ settings: data });
@@ -36,7 +36,7 @@ export async function PUT(request: NextRequest) {
   const parsed = notificationSettingsSchema.safeParse(body);
 
   if (!parsed.success) {
-    return jsonError(parsed.error.issues[0]?.message ?? "Dados invalidos.", 400, "validacao");
+    return jsonError(parsed.error.issues[0]?.message ?? "Dados inválidos.", 400, "validacao");
   }
 
   const admin = createSupabaseAdminClient();
@@ -47,7 +47,7 @@ export async function PUT(request: NextRequest) {
     .single();
 
   if (error || !data) {
-    return jsonError("Falha ao salvar configuracoes de notificacao.", 500, "notification_settings_save");
+    return jsonError("Falha ao salvar configurações de notificação.", 500, "notification_settings_save");
   }
 
   await admin.from("audit_logs").insert({

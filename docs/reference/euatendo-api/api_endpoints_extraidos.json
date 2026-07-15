@@ -1,0 +1,467 @@
+{
+  "source": "https://cluster.euatendo.app/dashboard/api",
+  "apiBaseUrl": "https://apicluster.euatendo.app",
+  "extractedAt": "2026-07-14T19:35:02.366Z",
+  "count": 26,
+  "sections": [
+    "Instâncias",
+    "Mensagens",
+    "Contatos",
+    "Webhooks",
+    "PIX",
+    "Presença",
+    "Pagamentos",
+    "Templates",
+    "Botões",
+    "SMS"
+  ],
+  "endpoints": [
+    {
+      "section": "instances",
+      "sectionLabel": "Instâncias",
+      "method": "GET",
+      "path": "/list-instances",
+      "description": "Lista todas as instâncias da empresa com seus dados principais.",
+      "curlExample": "curl --request GET \\\\\n  --url https://apicluster.euatendo.app/list-instances \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API'",
+      "responseBody": "{\n  \"success\": true,\n  \"instances\": [\n    {\n      \"id\": \"uuid-da-instancia\",\n      \"name\": \"minha-instancia\",\n      \"phoneNumber\": \"5511999999999\",\n      \"profileName\": \"Nome WhatsApp\",\n      \"status\": \"connected\",\n      \"serverType\": \"euAtendoPRO\",\n      \"createdAt\": \"2025-01-27T10:00:00Z\"\n    }\n  ],\n  \"count\": 1\n}",
+      "notes": [
+        "Retorna todas as instâncias da empresa autenticada",
+        "O status pode ser: pending, qr_code, connected, disconnected",
+        "serverType usa nomes comerciais: euAtendoPRO, euAtendoGO, ZuckPRO, CloudAPI, euAtendoPAPI"
+      ]
+    },
+    {
+      "section": "instances",
+      "sectionLabel": "Instâncias",
+      "method": "POST",
+      "path": "/create-instance",
+      "description": "Cria uma nova instância. Opcionalmente permite escolher o tipo de servidor.",
+      "curlExample": "# Alocação automática (padrão)\ncurl --request POST \\\\\n  --url https://apicluster.euatendo.app/create-instance \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"name\": \"minha-instancia\"\n}'\n\n# Escolhendo euAtendoPRO\ncurl --request POST \\\\\n  --url https://apicluster.euatendo.app/create-instance \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"name\": \"minha-instancia\",\n  \"serverType\": \"euAtendoPRO\"\n}'\n\n# Escolhendo euAtendoGO\ncurl --request POST \\\\\n  --url https://apicluster.euatendo.app/create-instance \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"name\": \"minha-instancia\",\n  \"serverType\": \"euAtendoGO\"\n}'\n\n# Escolhendo ZuckPRO (suporte a botões interativos)\ncurl --request POST \\\\\n  --url https://apicluster.euatendo.app/create-instance \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"name\": \"minha-instancia\",\n  \"serverType\": \"ZuckPRO\"\n}'",
+      "requestBody": "{\n  \"name\": \"nome-da-instancia\",\n  \"serverType\": \"euAtendoPRO\" // opcional: \"euAtendoPRO\", \"euAtendoGO\", \"ZuckPRO\" ou omitir para automático\n}",
+      "responseBody": "{\n  \"success\": true,\n  \"instanceId\": \"uuid-da-instancia\",\n  \"instanceKey\": \"chave-unica-da-instancia\",\n  \"serverType\": \"pro\", // ou \"go\", \"zuckpro\"\n  \"serverResponse\": {\n    \"token\": \"token-da-instancia\",\n    \"instance\": {\n      \"id\": \"id-interno\"\n    }\n  }\n}",
+      "notes": [
+        "O name é obrigatório e será o nome de identificação da instância",
+        "serverType é opcional: \"euAtendoPRO\", \"euAtendoGO\" ou \"ZuckPRO\"",
+        "ZuckPRO suporta botões interativos exclusivos (cta_url, cta_call, cta_copy, pix)",
+        "Se serverType não for informado, o sistema escolhe automaticamente via balanceamento de carga",
+        "O tipo de servidor disponível depende do plano contratado",
+        "O instanceId retornado deve ser usado nas demais operações"
+      ]
+    },
+    {
+      "section": "instances",
+      "sectionLabel": "Instâncias",
+      "method": "POST",
+      "path": "/proxy-managed-cities",
+      "description": "Lista cidades disponíveis no proxy regional gerenciado WhatsPRO para uma instância. Chame após create-instance e antes de connect-instance quando quiser usar proxy.",
+      "curlExample": "curl --request POST \\\\\n  --url https://apicluster.euatendo.app/proxy-managed-cities \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"uuid\": \"uuid-da-instancia\",\n  \"country\": \"br\",\n  \"state\": \"sp\"\n}'",
+      "requestBody": "{\n  \"uuid\": \"uuid-da-instancia\",       // ou instanceId (alias legado)\n  \"country\": \"br\",                   // opcional, padrão br\n  \"state\": \"sp\"                      // UF em minúsculas (obrigatório para filtrar cidades)\n}",
+      "responseBody": "{\n  \"success\": true,\n  \"cities\": [\n    {\n      \"name\": \"Campinas\",\n      \"value\": \"campinas\",\n      \"state\": \"sp\",\n      \"country\": \"br\"\n    }\n  ]\n}\n\n// Erro — servidor sem proxy regional ou tipo != WhatsPRO\n{\n  \"success\": false,\n  \"error\": \"Proxy regional não habilitado neste servidor\"\n}\n\n// Erro — instância ainda não criada no WhatsPRO\n{\n  \"success\": false,\n  \"error\": \"Instância ainda não foi criada no servidor WhatsPRO\"\n}",
+      "notes": [
+        "Disponível apenas para instâncias WhatsPRO em servidores com proxy regional habilitado",
+        "A instância deve existir no WhatsPRO (create-instance concluído) antes de listar cidades",
+        "Use o campo value (não name) em proxyManaged.city no connect-instance",
+        "Respostas são cacheadas no cluster por ~1 hora por país/servidor",
+        "HTTP 502 se a WhatsPRO falhar ao listar cidades upstream"
+      ]
+    },
+    {
+      "section": "instances",
+      "sectionLabel": "Instâncias",
+      "method": "POST",
+      "path": "/connect-instance",
+      "description": "Conecta uma instância ao WhatsApp. Retorna QR Code ou código de pareamento. Se já estiver conectada, retorna sucesso imediatamente. Instâncias WhatsPRO podem enviar proxyManaged opcional (ver seção acima).",
+      "curlExample": "# Conexão padrão (QR Code ou pareamento)\ncurl --request POST \\\\\n  --url https://apicluster.euatendo.app/connect-instance \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"uuid\": \"uuid-da-instancia\",\n  \"phone\": \"5511999999999\"\n}'\n\n# Conexão WhatsPRO com proxy regional (QR Code)\ncurl --request POST \\\\\n  --url https://apicluster.euatendo.app/connect-instance \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"uuid\": \"uuid-da-instancia\",\n  \"proxyManaged\": {\n    \"country\": \"br\",\n    \"state\": \"sp\",\n    \"city\": \"campinas\"\n  }\n}'\n\n# Conexão WhatsPRO com proxy regional + pareamento por número\ncurl --request POST \\\\\n  --url https://apicluster.euatendo.app/connect-instance \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"uuid\": \"uuid-da-instancia\",\n  \"proxyManaged\": {\n    \"country\": \"br\",\n    \"state\": \"sp\",\n    \"city\": \"campinas\"\n  },\n  \"phone\": \"5511999999999\"\n}'",
+      "requestBody": "{\n  \"uuid\": \"uuid-da-instancia\",       // ou instanceId (alias legado)\n  \"phone\": \"5511999999999\",         // opcional — pareamento por código\n  \"proxyManaged\": {                  // opcional — somente WhatsPRO + servidor com proxy regional\n    \"country\": \"br\",\n    \"state\": \"sp\",\n    \"city\": \"campinas\"               // value retornado por /proxy-managed-cities\n  }\n}",
+      "responseBody": "// Resposta com QR Code\n{\n  \"success\": true,\n  \"qrcode\": \"base64-do-qrcode\",\n  \"pairingCode\": null,\n  \"message\": \"QR code gerado\",\n  \"serverType\": \"pro\",\n  \"raw\": { ... } // dados brutos do servidor\n}\n\n// Resposta com código de pareamento (phone informado)\n{\n  \"success\": true,\n  \"qrcode\": null,\n  \"pairingCode\": \"ABC1-2345\",\n  \"message\": \"Código de pareamento gerado\",\n  \"serverType\": \"pro\",\n  \"raw\": { ... }\n}\n\n// Resposta quando já conectado\n{\n  \"success\": true,\n  \"qrcode\": null,\n  \"pairingCode\": null,\n  \"message\": \"WhatsApp já está conectado\",\n  \"serverType\": \"pro\",\n  \"raw\": { ... }\n}",
+      "notes": [
+        "Se a instância já estiver conectada, retorna success: true com a mensagem \"WhatsApp já está conectado\"",
+        "Se o phone for informado, retorna um código de pareamento (pairingCode) ao invés do QR Code",
+        "O QR Code retorna em base64 e deve ser exibido para o usuário escanear com o WhatsApp",
+        "O status da instância é atualizado automaticamente: \"connected\" se já conectado, \"qr_code\" se aguardando leitura",
+        "serverType indica o tipo de servidor: \"pro\" (euAtendo PRO / WhatsPRO) ou \"go\" (euAtendo GO)",
+        "proxyManaged é opcional; omitir mantém o connect normal em qualquer tipo de servidor",
+        "proxyManaged só é aplicado em instâncias WhatsPRO alocadas em servidor com proxy regional habilitado",
+        "Após connect bem-sucedido com proxyManaged, a escolha é persistida — reconexões podem omitir proxyManaged no body",
+        "Alias legado com mesmo comportamento: POST /connect-uazapi-instance",
+        "euAtendo GO não suporta proxy regional — use connect sem proxyManaged"
+      ]
+    },
+    {
+      "section": "instances",
+      "sectionLabel": "Instâncias",
+      "method": "POST",
+      "path": "/check-instance-status",
+      "description": "Verifica o status atual de uma instância e atualiza os dados do perfil conectado.",
+      "curlExample": "curl --request POST \\\\\n  --url https://apicluster.euatendo.app/check-instance-status \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"instanceId\": \"uuid-da-instancia\"\n}'",
+      "requestBody": "{\n  \"instanceId\": \"uuid-da-instancia\"\n}",
+      "responseBody": "{\n  \"success\": true,\n  \"connected\": true,\n  \"status\": \"connected\",\n  \"profileName\": \"Nome do Perfil\",\n  \"profilePicUrl\": \"https://...\",\n  \"phoneNumber\": \"5511999999999\",\n  \"serverType\": \"euAtendoPRO\",\n  \"cached\": false\n}",
+      "notes": [
+        "Rate limit: 120 req/min por empresa + 4 req/min por instância",
+        "Respostas são cacheadas por 30 segundos para evitar sobrecarga",
+        "O campo \"cached\" indica se o resultado veio do cache",
+        "serverType usa nomes comerciais: euAtendoPRO, euAtendoGO, ZuckPRO, CloudAPI, euAtendoPAPI"
+      ]
+    },
+    {
+      "section": "instances",
+      "sectionLabel": "Instâncias",
+      "method": "POST",
+      "path": "/delete-instance",
+      "description": "Deleta uma instância e remove do banco de dados.",
+      "curlExample": "curl --request POST \\\\\n  --url https://apicluster.euatendo.app/delete-instance \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"instanceId\": \"uuid-da-instancia\"\n}'",
+      "requestBody": "{\n  \"instanceId\": \"uuid-da-instancia\"\n}",
+      "responseBody": "{\n  \"success\": true,\n  \"message\": \"Instância deletada com sucesso\"\n}",
+      "notes": [
+        "Esta ação é irreversível",
+        "A instância será desconectada do WhatsApp e removida do sistema"
+      ]
+    },
+    {
+      "section": "messages",
+      "sectionLabel": "Mensagens",
+      "method": "POST",
+      "path": "/send-text-message",
+      "description": "Envia uma mensagem de texto simples.",
+      "curlExample": "curl --request POST \\\\\n  --url https://apicluster.euatendo.app/send-text-message \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"instanceId\": \"uuid-da-instancia\",\n  \"number\": \"5511999999999\",\n  \"text\": \"Olá, esta é uma mensagem de teste!\"\n}'",
+      "requestBody": "{\n  \"instanceId\": \"uuid-da-instancia\",\n  \"number\": \"5511999999999\",\n  \"text\": \"Olá, esta é uma mensagem de teste!\"\n}",
+      "responseBody": "{\n  \"success\": true,\n  \"message\": \"Mensagem enviada com sucesso\"\n}",
+      "notes": [
+        "O número deve incluir o código do país (55 para Brasil)",
+        "A instância deve estar conectada (status: connected)",
+        "Para exibir \"digitando…\" antes do envio, use POST /send-chat-presence (aba Presença) com presence: composing"
+      ]
+    },
+    {
+      "section": "messages",
+      "sectionLabel": "Mensagens",
+      "method": "POST",
+      "path": "/send-media-message",
+      "description": "Envia uma mensagem com mídia (imagem, vídeo, áudio ou documento). Suporta URL, Base64 ou upload de arquivo.",
+      "curlExample": "# Opção 1: JSON com URL\ncurl --request POST \\\\\n  --url https://apicluster.euatendo.app/send-media-message \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"instanceId\": \"uuid-da-instancia\",\n  \"number\": \"5511999999999\",\n  \"type\": \"image\",\n  \"file\": \"https://url-do-arquivo.com/imagem.jpg\",\n  \"text\": \"Legenda opcional\"\n}'\n\n# Opção 2: JSON com Base64\ncurl --request POST \\\\\n  --url https://apicluster.euatendo.app/send-media-message \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"instanceId\": \"uuid-da-instancia\",\n  \"number\": \"5511999999999\",\n  \"type\": \"document\",\n  \"base64\": \"JVBERi0xLjQKJeLjz9M...\",\n  \"mimeType\": \"application/pdf\",\n  \"fileName\": \"contrato.pdf\"\n}'\n\n# Opção 3: FormData com arquivo local\ncurl --request POST \\\\\n  --url https://apicluster.euatendo.app/send-media-message \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --form 'instanceId=uuid-da-instancia' \\\\\n  --form 'number=5511999999999' \\\\\n  --form 'type=image' \\\\\n  --form 'file=@/caminho/para/imagem.jpg' \\\\\n  --form 'text=Legenda opcional'",
+      "requestBody": "// Opção 1: JSON com URL\n{\n  \"instanceId\": \"uuid-da-instancia\",\n  \"number\": \"5511999999999\",\n  \"type\": \"image\",\n  \"file\": \"https://url-do-arquivo.com/imagem.jpg\",\n  \"text\": \"Legenda opcional\"\n}\n\n// Opção 2: JSON com Base64 (NOVO!)\n{\n  \"instanceId\": \"uuid-da-instancia\",\n  \"number\": \"5511999999999\",\n  \"type\": \"document\",\n  \"base64\": \"JVBERi0xLjQKJeLjz9M...\",\n  \"mimeType\": \"application/pdf\",\n  \"fileName\": \"contrato.pdf\",\n  \"text\": \"Segue o documento\"\n}\n\n// Opção 3: FormData com arquivo local\n// Content-Type: multipart/form-data\n// - instanceId: \"uuid-da-instancia\"\n// - number: \"5511999999999\"\n// - type: \"image\"\n// - file: (arquivo binário)\n// - text: \"Legenda opcional\"",
+      "responseBody": "{\n  \"success\": true,\n  \"messageId\": \"id-da-mensagem\",\n  \"status\": \"sent\",\n  \"chatId\": \"chat-id\"\n}",
+      "notes": [
+        "Tipos suportados: image, video, audio, document, myaudio, ptt, ptv, sticker",
+        "Opção 1 (URL): file deve ser uma URL pública acessível",
+        "Opção 2 (Base64): base64 é o conteúdo do arquivo em base64, mimeType define o tipo (ex: application/pdf)",
+        "Opção 3 (FormData): arquivo é enviado para storage automaticamente",
+        "fileName é opcional mas recomendado para documentos (define nome no WhatsApp)",
+        "Limite de 50MB para upload de arquivos",
+        "text/caption só é suportado para imagens e vídeos"
+      ]
+    },
+    {
+      "section": "messages",
+      "sectionLabel": "Mensagens",
+      "method": "POST",
+      "path": "/get-message-status",
+      "description": "Obtém o status ou histórico de mensagens. Funciona de forma diferente para cada tipo de servidor.",
+      "curlExample": "# euAtendo PRO - busca status por ID da mensagem\ncurl --request POST \\\\\n  --url https://apicluster.euatendo.app/get-message-status \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"instanceId\": \"uuid-da-instancia\",\n  \"messageId\": \"3EB0E8102609EC734DCA5D\"\n}'\n\n# euAtendo GO - busca histórico por JID do contato\ncurl --request POST \\\\\n  --url https://apicluster.euatendo.app/get-message-status \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"instanceId\": \"uuid-da-instancia\",\n  \"messageId\": \"559982385000@s.whatsapp.net\"\n}'",
+      "requestBody": "// euAtendo PRO - busca status por ID da mensagem\n{\n  \"instanceId\": \"uuid-da-instancia\",\n  \"messageId\": \"3EB0E8102609EC734DCA5D\"\n}\n\n// euAtendo GO - busca histórico por JID do contato\n{\n  \"instanceId\": \"uuid-da-instancia\",\n  \"messageId\": \"559982385000@s.whatsapp.net\"\n}",
+      "responseBody": "// Resposta euAtendo PRO\n{\n  \"success\": true,\n  \"serverType\": \"pro\",\n  \"message\": {\n    \"id\": \"3EB0E8102609EC734DCA5D\",\n    \"fromMe\": true,\n    \"remoteJid\": \"5511999999999@s.whatsapp.net\",\n    \"status\": \"READ\",\n    \"timestamp\": 1704067200,\n    \"type\": \"text\",\n    \"content\": \"Olá, esta é uma mensagem de teste!\"\n  },\n  \"raw\": { ... }\n}\n\n// Resposta euAtendo GO\n{\n  \"success\": true,\n  \"serverType\": \"go\",\n  \"message\": {\n    \"id\": \"4FB1D878E37B2C6G8D94\",\n    \"timestamp\": \"2023-12-01T15:30:00Z\",\n    \"type\": \"text\",\n    \"text\": \"Hello, how are you?\",\n    \"chatJid\": \"559982385000@s.whatsapp.net\",\n    \"senderJid\": \"559991046950@s.whatsapp.net\"\n  },\n  \"raw\": { ... }\n}",
+      "notes": [
+        "euAtendo PRO: messageId é o ID da mensagem retornado ao enviar",
+        "euAtendo GO: messageId é o JID do contato (ex: 559982385000@s.whatsapp.net)",
+        "O campo serverType indica o tipo de servidor: \"pro\" ou \"go\"",
+        "O campo raw contém a resposta completa do servidor para debugging",
+        "euAtendo PRO: Status possíveis: PENDING, SENT, DELIVERED, READ, PLAYED, ERROR",
+        "euAtendo GO: Retorna histórico de mensagens do contato (últimas 100)"
+      ]
+    },
+    {
+      "section": "messages",
+      "sectionLabel": "Mensagens",
+      "method": "POST",
+      "path": "/check-number-whatsapp",
+      "description": "Verifica se um ou mais números de telefone possuem WhatsApp válido.",
+      "curlExample": "curl --request POST \\\\\n  --url https://apicluster.euatendo.app/check-number-whatsapp \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"instanceId\": \"uuid-da-instancia\",\n  \"numbers\": [\n    \"5511999998888\",\n    \"5521988887777\"\n  ]\n}'",
+      "requestBody": "{\n  \"instanceId\": \"uuid-da-instancia\",\n  \"numbers\": [\n    \"5511999998888\",\n    \"5521988887777\",\n    \"5531977776666\"\n  ]\n}",
+      "responseBody": "{\n  \"success\": true,\n  \"serverType\": \"pro\",\n  \"results\": [\n    {\n      \"number\": \"5511999998888\",\n      \"exists\": true,\n      \"jid\": \"5511999998888@s.whatsapp.net\"\n    },\n    {\n      \"number\": \"5521988887777\",\n      \"exists\": true,\n      \"jid\": \"5521988887777@s.whatsapp.net\"\n    },\n    {\n      \"number\": \"5531977776666\",\n      \"exists\": false\n    }\n  ],\n  \"raw\": { ... }\n}",
+      "notes": [
+        "Permite verificar múltiplos números em uma única requisição",
+        "Cada número deve ter entre 10-15 dígitos (apenas números)",
+        "O campo exists indica se o número possui WhatsApp ativo",
+        "O campo jid é retornado apenas quando exists é true",
+        "O campo serverType indica o tipo de servidor: \"pro\" ou \"go\"",
+        "O campo raw contém a resposta completa do servidor para debugging"
+      ]
+    },
+    {
+      "section": "contacts",
+      "sectionLabel": "Contatos",
+      "method": "POST",
+      "path": "/get-instance-contacts",
+      "description": "Retorna a lista de contatos salvos na instância do WhatsApp.",
+      "curlExample": "curl --request POST \\\\\n  --url https://apicluster.euatendo.app/get-instance-contacts \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"instanceId\": \"uuid-da-instancia\"\n}'",
+      "requestBody": "{\n  \"instanceId\": \"uuid-da-instancia\"\n}",
+      "responseBody": "{\n  \"success\": true,\n  \"contacts\": [\n    {\n      \"id\": \"5511999999999@s.whatsapp.net\",\n      \"name\": \"Nome do Contato\",\n      \"pushName\": \"Nome de Exibição\",\n      \"profilePicUrl\": \"https://...\"\n    }\n  ]\n}",
+      "notes": [
+        "Retorna apenas contatos sincronizados com o WhatsApp",
+        "O id do contato está no formato JID do WhatsApp"
+      ]
+    },
+    {
+      "section": "contacts",
+      "sectionLabel": "Contatos",
+      "method": "POST",
+      "path": "/send-contact",
+      "description": "Envia um contato (vCard) para um número de WhatsApp. Disponível apenas para euAtendo PRO.",
+      "curlExample": "curl --request POST \\\\\n  --url https://apicluster.euatendo.app/send-contact \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"instanceId\": \"uuid-da-instancia\",\n  \"number\": \"5511999999999\",\n  \"fullName\": \"João Silva\",\n  \"phoneNumber\": \"5511888888888,5521777777777\",\n  \"organization\": \"Empresa XYZ\",\n  \"email\": \"joao@empresa.com\",\n  \"url\": \"https://empresa.com/joao\"\n}'",
+      "requestBody": "{\n  \"instanceId\": \"uuid-da-instancia\",\n  \"number\": \"5511999999999\",\n  \"fullName\": \"João Silva\",\n  \"phoneNumber\": \"5511888888888,5521777777777\",\n  \"organization\": \"Empresa XYZ\",\n  \"email\": \"joao@empresa.com\",\n  \"url\": \"https://empresa.com/joao\"\n}",
+      "responseBody": "{\n  \"success\": true,\n  \"messageId\": \"3EB092C7213F95C060E140\",\n  \"status\": \"Pending\",\n  \"chatId\": \"5511999999999@s.whatsapp.net\",\n  \"raw\": {\n    \"chatid\": \"5511999999999@s.whatsapp.net\",\n    \"content\": {\n      \"displayName\": \"João Silva\",\n      \"vcard\": \"BEGIN:VCARD\\\\nVERSION:3.0\\\\n...\"\n    },\n    \"messageType\": \"ContactMessage\",\n    ...\n  }\n}",
+      "notes": [
+        "number é o destinatário que receberá o contato (com código do país)",
+        "fullName é o nome completo do contato a ser enviado (obrigatório)",
+        "phoneNumber são os telefones do contato, separados por vírgula para múltiplos (obrigatório)",
+        "organization, email e url são campos opcionais do vCard",
+        "Disponível apenas para instâncias euAtendo PRO",
+        "A instância deve estar conectada (status: connected)",
+        "Conta no limite diário de mensagens"
+      ]
+    },
+    {
+      "section": "webhooks",
+      "sectionLabel": "Webhooks",
+      "method": "POST",
+      "path": "/set-instance-webhook",
+      "description": "Obtém a configuração atual do webhook da instância. Envie apenas o instanceId para consultar.",
+      "curlExample": "curl --request POST \\\\\n  --url https://apicluster.euatendo.app/set-instance-webhook \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"instanceId\": \"uuid-da-instancia\"\n}'",
+      "requestBody": "{\n  \"instanceId\": \"uuid-da-instancia\"\n}",
+      "responseBody": "{\n  \"success\": true,\n  \"config\": {\n    \"url\": \"https://seu-servidor.com/webhook\",\n    \"events\": [\"Message\", \"Receipt\"],\n    \"active\": true\n  }\n}",
+      "notes": [
+        "Este endpoint funciona em dois modos: GET (consulta) e SET (configuração)",
+        "Para consultar, envie apenas o instanceId",
+        "Disponível para instâncias compatíveis: euAtendoGO, WhatsPRO, euAtendoPAPI e ZuckPRO"
+      ]
+    },
+    {
+      "section": "webhooks",
+      "sectionLabel": "Webhooks",
+      "method": "POST",
+      "path": "/set-instance-webhook",
+      "description": "Configura o webhook para receber eventos da instância do WhatsApp.",
+      "curlExample": "curl --request POST \\\\\n  --url https://apicluster.euatendo.app/set-instance-webhook \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"instanceId\": \"uuid-da-instancia\",\n  \"webhookUrl\": \"https://seu-servidor.com/webhook\",\n  \"events\": [\"Message\", \"Receipt\", \"Connected\"],\n  \"active\": true\n}'",
+      "requestBody": "{\n  \"instanceId\": \"uuid-da-instancia\",\n  \"webhookUrl\": \"https://seu-servidor.com/webhook\",\n  \"events\": [\"Message\", \"Receipt\", \"Connected\"],\n  \"active\": true\n}",
+      "responseBody": "{\n  \"success\": true,\n  \"config\": {\n    \"url\": \"https://seu-servidor.com/webhook\",\n    \"events\": [\"Message\", \"Receipt\", \"Connected\"],\n    \"active\": true\n  }\n}",
+      "notes": [
+        "webhookUrl deve ser uma URL HTTPS válida",
+        "active: true para ativar, false para desativar",
+        "Use [\"All\"] no events para receber todos os eventos",
+        "Para remover webhook, envie webhookUrl vazio, events vazio e active: false"
+      ]
+    },
+    {
+      "section": "pix",
+      "sectionLabel": "PIX",
+      "method": "POST",
+      "path": "/send-pix-button",
+      "description": "Envia uma mensagem com botão de pagamento PIX.",
+      "curlExample": "curl --request POST \\\\\n  --url https://apicluster.euatendo.app/send-pix-button \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"instanceId\": \"uuid-da-instancia\",\n  \"number\": \"5511999999999\",\n  \"pixType\": \"EVP\",\n  \"pixKey\": \"123e4567-e89b-12d3-a456-426614174000\",\n  \"pixName\": \"Nome do Recebedor\",\n  \"amount\": 150.50,\n  \"description\": \"Pagamento do pedido #123\"\n}'",
+      "requestBody": "{\n  \"instanceId\": \"uuid-da-instancia\",\n  \"number\": \"5511999999999\",\n  \"pixType\": \"EVP\", // CPF, CNPJ, PHONE, EMAIL, EVP\n  \"pixKey\": \"123e4567-e89b-12d3-a456-426614174000\",\n  \"pixName\": \"Nome do Recebedor\",\n  \"amount\": 150.50, // opcional\n  \"description\": \"Pagamento do pedido #123\" // opcional\n}",
+      "responseBody": "{\n  \"success\": true,\n  \"message\": \"Mensagem PIX enviada com sucesso\"\n}",
+      "notes": [
+        "pixType aceita: CPF, CNPJ, PHONE, EMAIL, EVP (case insensitive)",
+        "EVP é a chave aleatória do PIX",
+        "amount e description são opcionais"
+      ]
+    },
+    {
+      "section": "pix",
+      "sectionLabel": "PIX",
+      "method": "POST",
+      "path": "/send-copy-button",
+      "description": "Envia uma mensagem com botão de copiar texto. Útil para enviar códigos PIX, cupons, senhas temporárias, etc. Suporta imagem opcional via URL ou upload de arquivo.",
+      "curlExample": "# Envio com URL de imagem externa\ncurl --request POST \\\\\n  --url https://apicluster.euatendo.app/send-copy-button \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"instanceId\": \"uuid-da-instancia\",\n  \"number\": \"5511999999999\",\n  \"text\": \"Aqui está seu código PIX:\",\n  \"buttonText\": \"Copiar Código PIX\",\n  \"copyContent\": \"00020126580014BR.GOV.BCB.PIX...\",\n  \"imageButton\": \"https://exemplo.com/imagem.jpg\",\n  \"footerText\": \"Clique para copiar\"\n}'\n\n# Envio com upload de arquivo (multipart/form-data)\ncurl --request POST \\\\\n  --url https://apicluster.euatendo.app/send-copy-button \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --form 'instanceId=uuid-da-instancia' \\\\\n  --form 'number=5511999999999' \\\\\n  --form 'text=Aqui está seu código PIX:' \\\\\n  --form 'buttonText=Copiar Código PIX' \\\\\n  --form 'copyContent=00020126580014BR.GOV.BCB.PIX...' \\\\\n  --form 'footerText=Clique para copiar' \\\\\n  --form 'image=@/caminho/para/imagem.jpg'",
+      "requestBody": "{\n  \"instanceId\": \"uuid-da-instancia\",\n  \"number\": \"5511999999999\",\n  \"text\": \"Aqui está seu código PIX:\",\n  \"buttonText\": \"Copiar Código PIX\",\n  \"copyContent\": \"00020126580014BR.GOV.BCB.PIX...\",\n  \"imageButton\": \"https://exemplo.com/imagem.jpg\", // opcional\n  \"footerText\": \"Clique para copiar\" // opcional\n}\n\n// Ou via multipart/form-data para upload de arquivo:\n// - instanceId, number, text, buttonText, copyContent: campos de texto\n// - footerText: campo de texto opcional\n// - image: arquivo de imagem (JPG, PNG, WEBP, GIF)",
+      "responseBody": "{\n  \"success\": true,\n  \"messageId\": \"id-da-mensagem\",\n  \"status\": \"sent\",\n  \"chatId\": \"5511999999999@s.whatsapp.net\"\n}",
+      "notes": [
+        "Disponível apenas para instâncias euAtendo PRO",
+        "copyContent é o texto que será copiado ao clicar no botão",
+        "Limite de 4096 caracteres para copyContent",
+        "imageButton: URL externa da imagem (opcional)",
+        "image: campo para upload de arquivo via multipart/form-data (alternativo ao imageButton)",
+        "Limite de 5MB para upload de imagem. Formatos: JPG, PNG, WEBP, GIF",
+        "Arquivos enviados são armazenados automaticamente no servidor",
+        "A mensagem pode aparecer como \"Não é possível exibir no WhatsApp Web\"",
+        "A instância deve estar conectada (status: connected)"
+      ]
+    },
+    {
+      "section": "presence",
+      "sectionLabel": "Presença",
+      "method": "POST",
+      "path": "/send-chat-presence",
+      "description": "Envia presença no chat (digitando, gravando áudio ou parar o indicador). Disponível para instâncias WhatsPRO, euAtendo GO e ZuckPRO. Não consome limite diário/mensal de mensagens.",
+      "curlExample": "r&&!t?`curl --request POST \\\\\n  --url ${e}/send-chat-presence \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"uuid\": \"uuid-instancia-go\",\n  \"number\": \"5511999999999\",\n  \"presence\": \"composing\"\n}'`:`curl --request POST \\\\\n  --url ${e}/send-chat-presence \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"uuid\": \"fea7393c-61d3-4fa2-9b40-d2309f7d4e21\",\n  \"number\": \"5511999999999\",\n  \"presence\": \"composing\"\n}'`",
+      "requestBody": "{\n  \"uuid\": \"fea7393c-61d3-4fa2-9b40-d2309f7d4e21\",  // obrigatório (alias: instanceId)\n  \"number\": \"5511999999999\",          // obrigatório se chatId omitido\n  \"chatId\": \"5511999999999@s.whatsapp.net\",  // opcional (alternativa a number)\n  \"presence\": \"composing\"  // composing | recording | paused\n}",
+      "responseBody": "// WhatsPRO (resposta inclui chatId)\n{\n  \"success\": true,\n  \"presence\": \"composing\",\n  \"chatId\": \"5511999999999@s.whatsapp.net\"\n}\n\n// euAtendo GO / ZuckPRO (resposta inclui phone)\n{\n  \"success\": true,\n  \"presence\": \"composing\",\n  \"phone\": \"5511999999999\"\n}\n\n// Erro — tipo de servidor não suportado (Cloud API, PAPI, etc.)\n{\n  \"success\": false,\n  \"error\": \"Presença no chat disponível apenas para instâncias WhatsPRO (euAtendo PRO) ou euAtendo GO\",\n  \"errorCode\": \"PRESENCE_UNSUPPORTED_SERVER\"\n}",
+      "notes": [
+        "Campo uuid = id da instância em /list-instances; instanceId aceito como alias",
+        "Instância deve estar connected",
+        "Grupos: use number ou chatId no formato id@g.us",
+        "Fluxo recomendado: composing → POST /send-text-message (ou mídia) → paused",
+        "O indicador expira no WhatsApp; reenvie composing em respostas longas",
+        "Cloud API e PAPI: errorCode PRESENCE_UNSUPPORTED_SERVER",
+        "r?\"GO upstream: POST /chat/presence com { Phone, State } — Media só em recording\":\"\"",
+        "t?\"WhatsPRO: upstream POST /message/presence (number, presence, delay opcional)\":\"\"",
+        "delay (ms) opcional no body repassado ao uazapiGO\"].filter(Boolea"
+      ]
+    },
+    {
+      "section": "presence",
+      "sectionLabel": "Presença",
+      "method": "POST",
+      "path": "/set-instance-presence",
+      "description": "Define se a conta WhatsPRO aparece online (available) ou offline (unavailable) no WhatsApp. Exclusivo euAtendo PRO — a API GO não possui endpoint equivalente.",
+      "curlExample": "curl --request POST \\\\\n  --url https://apicluster.euatendo.app/set-instance-presence \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"uuid\": \"fea7393c-61d3-4fa2-9b40-d2309f7d4e21\",\n  \"presence\": \"available\"\n}'",
+      "requestBody": "{\n  \"uuid\": \"fea7393c-61d3-4fa2-9b40-d2309f7d4e21\",  // alias: instanceId\n  \"presence\": \"available\"  // available | unavailable\n}",
+      "responseBody": "{\n  \"success\": true,\n  \"presence\": \"available\"\n}\n\n// Instância euAtendo GO\n{\n  \"success\": false,\n  \"error\": \"Disponível apenas para instâncias WhatsPRO (euAtendo PRO)\",\n  \"errorCode\": \"PRESENCE_WHATSAPP_PRO_ONLY\"\n}",
+      "notes": [
+        "Campo uuid obrigatório; instanceId aceito como alias legado",
+        "Somente server_type uazapi (WhatsPRO)",
+        "Upstream: POST /instance/presence",
+        "Não confundir com send-chat-presence (indicador no chat com um contato)"
+      ]
+    },
+    {
+      "section": "payments",
+      "sectionLabel": "Pagamentos",
+      "method": "POST",
+      "path": "/send-request-payment",
+      "description": "Envia uma solicitação de pagamento com o botão nativo 'Revisar e Pagar' do WhatsApp. Suporta PIX, boleto, link de pagamento e anexo de documento.",
+      "curlExample": "curl --request POST \\\\\n  --url https://apicluster.euatendo.app/send-request-payment \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"instanceId\": \"uuid-da-instancia\",\n  \"number\": \"5511999999999\",\n  \"amount\": 199.90,\n  \"title\": \"Detalhes do pedido\",\n  \"text\": \"Pedido #123 pronto para pagamento\",\n  \"footer\": \"Loja Exemplo\",\n  \"itemName\": \"Assinatura Plano Ouro\",\n  \"invoiceNumber\": \"PED-123\",\n  \"pixKey\": \"123e4567-e89b-12d3-a456-426614174000\",\n  \"pixType\": \"EVP\",\n  \"pixName\": \"Nome do Recebedor\"\n}'",
+      "requestBody": "{\n  \"instanceId\": \"uuid-da-instancia\",\n  \"number\": \"5511999999999\",\n  \"amount\": 199.90,\n  \"title\": \"Detalhes do pedido\",\n  \"text\": \"Pedido #123 pronto para pagamento\",\n  \"footer\": \"Loja Exemplo\",\n  \"itemName\": \"Assinatura Plano Ouro\",\n  \"invoiceNumber\": \"PED-123\",\n  \"pixKey\": \"123e4567-e89b-12d3-a456-426614174000\",\n  \"pixType\": \"EVP\",\n  \"pixName\": \"Nome do Recebedor\",\n  \"paymentLink\": \"https://pagamentos.exemplo.com/checkout/abc\",\n  \"fileUrl\": \"https://cdn.exemplo.com/boleto-123.pdf\",\n  \"fileName\": \"boleto-123.pdf\",\n  \"boletoCode\": \"34191.79001 01043.510047 91020.150008 5 91070026000\"\n}",
+      "responseBody": "{\n  \"success\": true,\n  \"messageId\": \"id-da-mensagem\",\n  \"status\": \"Pending\",\n  \"chatId\": \"5511999999999@s.whatsapp.net\"\n}",
+      "notes": [
+        "Campos obrigatórios: instanceId, number, amount",
+        "amount deve ser um número positivo (valor em BRL)",
+        "pixType aceita: CPF, CNPJ, PHONE, EMAIL, EVP (padrão EVP)",
+        "pixKey é a chave PIX do recebedor",
+        "paymentLink deve ser de domínios homologados pelo WhatsApp",
+        "fileUrl pode ser um boleto PDF ou documento de fatura",
+        "boletoCode é a linha digitável do boleto (habilita método boleto)",
+        "A instância deve estar conectada (status: connected)"
+      ]
+    },
+    {
+      "section": "templates",
+      "sectionLabel": "Templates",
+      "method": "POST",
+      "path": "/sync-whatsapp-templates",
+      "description": "Sincroniza os templates de mensagem do Meta Business com o sistema. Execute antes de enviar templates para garantir que estão atualizados.",
+      "curlExample": "curl --request POST \\\\\n  --url https://apicluster.euatendo.app/sync-whatsapp-templates \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"instanceId\": \"uuid-da-instancia-cloudapi\"\n}'",
+      "requestBody": "{\n  \"instanceId\": \"uuid-da-instancia-cloudapi\"\n}",
+      "responseBody": "{\n  \"success\": true,\n  \"message\": \"Synchronized 15 templates\",\n  \"totalFetched\": 15,\n  \"syncedCount\": 15\n}",
+      "notes": [
+        "Apenas para instâncias do tipo Cloud API (Meta)",
+        "Busca todos os templates da conta WABA configurada",
+        "Atualiza status, componentes e categoria de cada template",
+        "Remove templates que não existem mais no Meta"
+      ]
+    },
+    {
+      "section": "templates",
+      "sectionLabel": "Templates",
+      "method": "POST",
+      "path": "/send-template-message",
+      "description": "Envia uma mensagem de template aprovado. Suporta variáveis de header, body e botões dinâmicos.",
+      "curlExample": "# Template simples sem variáveis\ncurl --request POST \\\\\n  --url https://apicluster.euatendo.app/send-template-message \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"instanceId\": \"uuid-da-instancia-cloudapi\",\n  \"number\": \"5511999999999\",\n  \"templateName\": \"hello_world\",\n  \"languageCode\": \"pt_BR\"\n}'\n\n# Template com variáveis no body\ncurl --request POST \\\\\n  --url https://apicluster.euatendo.app/send-template-message \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"instanceId\": \"uuid-da-instancia-cloudapi\",\n  \"number\": \"5511999999999\",\n  \"templateName\": \"order_confirmation\",\n  \"languageCode\": \"pt_BR\",\n  \"components\": [\n    {\n      \"type\": \"body\",\n      \"parameters\": [\n        { \"type\": \"text\", \"text\": \"João\" },\n        { \"type\": \"text\", \"text\": \"12345\" },\n        { \"type\": \"text\", \"text\": \"R$ 99,90\" }\n      ]\n    }\n  ]\n}'\n\n# Template com header de imagem e variáveis\ncurl --request POST \\\\\n  --url https://apicluster.euatendo.app/send-template-message \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"instanceId\": \"uuid-da-instancia-cloudapi\",\n  \"number\": \"5511999999999\",\n  \"templateName\": \"promo_image\",\n  \"languageCode\": \"pt_BR\",\n  \"components\": [\n    {\n      \"type\": \"header\",\n      \"parameters\": [\n        { \"type\": \"image\", \"image\": { \"link\": \"https://exemplo.com/promo.jpg\" } }\n      ]\n    },\n    {\n      \"type\": \"body\",\n      \"parameters\": [\n        { \"type\": \"text\", \"text\": \"20%\" }\n      ]\n    }\n  ]\n}'\n\n# Template com botão de URL dinâmica\ncurl --request POST \\\\\n  --url https://apicluster.euatendo.app/send-template-message \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"instanceId\": \"uuid-da-instancia-cloudapi\",\n  \"number\": \"5511999999999\",\n  \"templateName\": \"cobranca_vencida\",\n  \"languageCode\": \"pt_BR\",\n  \"components\": [\n    {\n      \"type\": \"header\",\n      \"parameters\": [\n        { \"type\": \"text\", \"text\": \"R$ 150,00\" }\n      ]\n    },\n    {\n      \"type\": \"body\",\n      \"parameters\": [\n        { \"type\": \"text\", \"text\": \"Maria\" },\n        { \"type\": \"text\", \"text\": \"R$ 150,00\" },\n        { \"type\": \"text\", \"text\": \"está vencido desde 10/01\" }\n      ]\n    },\n    {\n      \"type\": \"button\",\n      \"sub_type\": \"url\",\n      \"index\": 0,\n      \"parameters\": [\n        { \"type\": \"text\", \"text\": \"abc123-fatura-id\" }\n      ]\n    }\n  ]\n}'",
+      "requestBody": "{\n  \"instanceId\": \"uuid-da-instancia-cloudapi\",\n  \"number\": \"5511999999999\",\n  \"templateName\": \"nome_do_template\",\n  \"languageCode\": \"pt_BR\",\n  \"components\": [\n    {\n      \"type\": \"header\",\n      \"parameters\": [\n        // Para texto: { \"type\": \"text\", \"text\": \"valor\" }\n        // Para imagem: { \"type\": \"image\", \"image\": { \"link\": \"https://...\" } }\n        // Para vídeo: { \"type\": \"video\", \"video\": { \"link\": \"https://...\" } }\n        // Para documento: { \"type\": \"document\", \"document\": { \"link\": \"https://...\", \"filename\": \"doc.pdf\" } }\n      ]\n    },\n    {\n      \"type\": \"body\",\n      \"parameters\": [\n        { \"type\": \"text\", \"text\": \"variavel_1\" },\n        { \"type\": \"text\", \"text\": \"variavel_2\" }\n      ]\n    },\n    {\n      \"type\": \"button\",\n      \"sub_type\": \"url\",\n      \"index\": 0,  // índice do botão (0 para primeiro)\n      \"parameters\": [\n        { \"type\": \"text\", \"text\": \"valor-dinamico-url\" }\n      ]\n    }\n  ]\n}",
+      "responseBody": "{\n  \"success\": true,\n  \"messageId\": \"wamid.HBgMNTU5OTgyMzg1MDAwFQIAERgSNDN...\",\n  \"template\": {\n    \"name\": \"cobranca_vencida\",\n    \"language\": \"pt_BR\"\n  },\n  \"raw\": {\n    \"messaging_product\": \"whatsapp\",\n    \"contacts\": [{ \"input\": \"5511999999999\", \"wa_id\": \"5511999999999\" }],\n    \"messages\": [{ \"id\": \"wamid.HBgMNTU5OTgyMzg1MDAwFQIAERgSNDN...\" }]\n  }\n}",
+      "notes": [
+        "Apenas para instâncias do tipo Cloud API (Meta)",
+        "O template deve estar APROVADO no Meta Business",
+        "Execute /sync-whatsapp-templates primeiro para garantir templates atualizados",
+        "languageCode deve corresponder ao idioma do template (ex: pt_BR, en_US)",
+        "Variáveis são substituídas na ordem: {{1}}, {{2}}, {{3}}...",
+        "Para botões dinâmicos, use type: \"button\" com sub_type: \"url\" e index do botão",
+        "Header pode ser: TEXT (com variáveis), IMAGE, VIDEO ou DOCUMENT",
+        "O limite diário de mensagens da instância é aplicado"
+      ]
+    },
+    {
+      "section": "templates",
+      "sectionLabel": "Templates",
+      "method": "POST",
+      "path": "/send-text-message",
+      "description": "Envia mensagem de texto simples via Cloud API. Funciona da mesma forma que para outras instâncias.",
+      "curlExample": "curl --request POST \\\\\n  --url https://apicluster.euatendo.app/send-text-message \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"instanceId\": \"uuid-da-instancia-cloudapi\",\n  \"number\": \"5511999999999\",\n  \"text\": \"Olá! Esta é uma mensagem via Cloud API.\"\n}'",
+      "requestBody": "{\n  \"instanceId\": \"uuid-da-instancia-cloudapi\",\n  \"number\": \"5511999999999\",\n  \"text\": \"Sua mensagem aqui\"\n}",
+      "responseBody": "{\n  \"success\": true,\n  \"messageId\": \"wamid.HBgMNTU5OTgyMzg1MDAwFQIAERgS...\",\n  \"status\": \"sent\",\n  \"chatId\": \"5511999999999\"\n}",
+      "notes": [
+        "Funciona para instâncias Cloud API da mesma forma que PRO/GO",
+        "O número deve incluir código do país (55 para Brasil)",
+        "Limite de 4096 caracteres por mensagem"
+      ]
+    },
+    {
+      "section": "templates",
+      "sectionLabel": "Templates",
+      "method": "POST",
+      "path": "/send-media-message",
+      "description": "Envia mídia (imagem, vídeo, áudio, documento) via Cloud API.",
+      "curlExample": "# Enviar imagem com legenda\ncurl --request POST \\\\\n  --url https://apicluster.euatendo.app/send-media-message \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"instanceId\": \"uuid-da-instancia-cloudapi\",\n  \"number\": \"5511999999999\",\n  \"type\": \"image\",\n  \"file\": \"https://exemplo.com/imagem.jpg\",\n  \"text\": \"Confira nossa promoção!\"\n}'\n\n# Enviar documento PDF\ncurl --request POST \\\\\n  --url https://apicluster.euatendo.app/send-media-message \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"instanceId\": \"uuid-da-instancia-cloudapi\",\n  \"number\": \"5511999999999\",\n  \"type\": \"document\",\n  \"file\": \"https://exemplo.com/contrato.pdf\",\n  \"fileName\": \"Contrato.pdf\"\n}'",
+      "requestBody": "{\n  \"instanceId\": \"uuid-da-instancia-cloudapi\",\n  \"number\": \"5511999999999\",\n  \"type\": \"image\",  // image, video, audio, document\n  \"file\": \"https://url-publica.com/arquivo.jpg\",\n  \"text\": \"Legenda opcional\",\n  \"fileName\": \"nome-arquivo.pdf\"  // obrigatório para document\n}",
+      "responseBody": "{\n  \"success\": true,\n  \"messageId\": \"wamid.HBgMNTU5OTgyMzg1MDAwFQIAERgS...\",\n  \"status\": \"sent\"\n}",
+      "notes": [
+        "Tipos suportados: image, video, audio, document",
+        "A URL deve ser pública e acessível pelo Meta",
+        "fileName é obrigatório para documentos",
+        "Legenda (text) só funciona para imagens e vídeos",
+        "Limite de 16MB para imagens, 64MB para vídeos/documentos"
+      ]
+    },
+    {
+      "section": "buttons",
+      "sectionLabel": "Botões",
+      "method": "POST",
+      "path": "/send-buttons-message",
+      "description": "Envia uma mensagem interativa com botões para um contato ou grupo do WhatsApp. Suporta múltiplos tipos de botões e header com mídia.",
+      "curlExample": "# Exemplo com botões de resposta, URL e chamada\ncurl --request POST \\\\\n  --url https://apicluster.euatendo.app/send-buttons-message \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"instanceId\": \"uuid-da-instancia-zuckpro\",\n  \"number\": \"5511999999999\",\n  \"title\": \"Ofertas do Dia\",\n  \"text\": \"Escolha uma ação abaixo:\",\n  \"footer\": \"Equipe ZuckPRO\",\n  \"buttons\": [\n    {\n      \"buttonId\": \"cta_copy_1\",\n      \"buttonText\": { \"displayText\": \"Copiar Cupom\" },\n      \"type\": \"cta_copy\",\n      \"code\": \"CUPOM123\"\n    },\n    {\n      \"buttonId\": \"cta_url_1\",\n      \"buttonText\": { \"displayText\": \"Abrir Site\" },\n      \"type\": \"cta_url\",\n      \"url\": \"https://exemplo.com/oferta\"\n    },\n    {\n      \"buttonId\": \"cta_call_1\",\n      \"buttonText\": { \"displayText\": \"Falar com Vendas\" },\n      \"type\": \"cta_call\",\n      \"phone\": \"+5511988888888\"\n    }\n  ]\n}'\n\n# Exemplo com botão PIX\ncurl --request POST \\\\\n  --url https://apicluster.euatendo.app/send-buttons-message \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"instanceId\": \"uuid-da-instancia-zuckpro\",\n  \"number\": \"5511999999999\",\n  \"title\": \"Pagamento PIX\",\n  \"text\": \"Clique no botão para pagar via PIX\",\n  \"footer\": \"Pagamento seguro e instantâneo\",\n  \"buttons\": [\n    {\n      \"buttonId\": \"pix_btn_1\",\n      \"buttonText\": { \"displayText\": \"Pagar com PIX\" },\n      \"type\": \"pix\",\n      \"pix_key\": \"11999999999\",\n      \"merchant_name\": \"Minha Loja\",\n      \"pix_type\": \"PHONE\"\n    }\n  ]\n}'\n\n# Exemplo com imagem e botão\ncurl --request POST \\\\\n  --url https://apicluster.euatendo.app/send-buttons-message \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"instanceId\": \"uuid-da-instancia-zuckpro\",\n  \"number\": \"5511999999999\",\n  \"title\": \"Catálogo de Produtos\",\n  \"text\": \"Confira nosso catálogo completo!\",\n  \"footer\": \"Loja Exemplo\",\n  \"image\": {\n    \"url\": \"https://exemplo.com/catalogo.jpg\"\n  },\n  \"buttons\": [\n    {\n      \"buttonId\": \"reply_1\",\n      \"buttonText\": { \"displayText\": \"Quero saber mais\" },\n      \"type\": \"reply\"\n    }\n  ]\n}'",
+      "requestBody": "{\n  \"instanceId\": \"uuid-da-instancia-zuckpro\",\n  \"number\": \"5511999999999\",\n  \"title\": \"Título da mensagem\",          // opcional\n  \"text\": \"Corpo da mensagem\",             // obrigatório quando não há mídia\n  \"footer\": \"Rodapé da mensagem\",          // opcional\n  \"image\": {                               // opcional - header com imagem\n    \"url\": \"https://url-da-imagem.jpg\"\n  },\n  \"buttons\": [                             // obrigatório, 1-5 botões\n    {\n      \"buttonId\": \"id_unico\",\n      \"buttonText\": { \"displayText\": \"Texto do Botão\" },\n      \"type\": \"reply\",                     // tipo do botão (ver abaixo)\n      // Campos adicionais dependem do tipo\n    }\n  ]\n}",
+      "responseBody": "{\n  \"success\": true,\n  \"messageId\": \"3EB0E8102609EC734DCA5D\",\n  \"status\": \"sent\",\n  \"chatId\": \"5511999999999@s.whatsapp.net\"\n}",
+      "notes": [
+        "Disponível APENAS para instâncias ZuckPRO",
+        "Máximo de 5 botões por mensagem",
+        "O número deve incluir código do país (55 para Brasil)",
+        "A instância deve estar conectada (status: connected)",
+        "Conta no limite diário de mensagens"
+      ]
+    },
+    {
+      "section": "sms",
+      "sectionLabel": "SMS",
+      "method": "POST",
+      "path": "/sms-send-message",
+      "description": "Envia uma mensagem SMS para um ou mais destinatários.",
+      "curlExample": "curl --request POST \\\\\n  --url https://apicluster.euatendo.app/sms-send-message \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"instance_id\": \"uuid-da-instancia-sms\",\n  \"receivers\": [\"5511999999999\"],\n  \"content\": \"Sua mensagem SMS aqui\"\n}'",
+      "requestBody": "{\n  \"instance_id\": \"uuid-da-instancia-sms\",\n  \"receivers\": [\"5511999999999\", \"5511888888888\"],\n  \"content\": \"Olá! Esta é uma mensagem de teste via SmsPRO.\"\n}",
+      "responseBody": "{\n  \"success\": true,\n  \"requestUniqueId\": \"abc123-def456\",\n  \"creditsUsed\": 1\n}",
+      "notes": [
+        "O número deve incluir o código do país (55 para Brasil) + DDD + número",
+        "Mensagens de até 160 caracteres consomem 1 crédito",
+        "Acima de 160 caracteres: +1 crédito a cada 153 caracteres adicionais",
+        "O campo receivers aceita até 100 números por requisição",
+        "requestUniqueId é o protocolo para rastreamento da mensagem",
+        "Limites diários e mensais são controlados automaticamente pela instância"
+      ]
+    },
+    {
+      "section": "sms",
+      "sectionLabel": "SMS",
+      "method": "POST",
+      "path": "/sms-sync-status",
+      "description": "Sincroniza o status de entrega das mensagens SMS enviadas.",
+      "curlExample": "curl --request POST \\\\\n  --url https://apicluster.euatendo.app/sms-sync-status \\\\\n  --header 'Authorization: Bearer SEU_TOKEN_API' \\\\\n  --header 'Content-Type: application/json' \\\\\n  --data '{\n  \"instance_id\": \"uuid-da-instancia-sms\"\n}'",
+      "requestBody": "{\n  \"instance_id\": \"uuid-da-instancia-sms\"\n}",
+      "responseBody": "{\n  \"success\": true,\n  \"synced\": 15,\n  \"message\": \"Status atualizado para 15 mensagens\"\n}",
+      "notes": [
+        "Consulta o relatório detalhado da Comtele e atualiza os status no banco",
+        "A API de relatórios tem cooldown de 30 segundos entre chamadas",
+        "Status possíveis: sent, delivered, error",
+        "Útil para verificar entregas após envio em massa"
+      ]
+    }
+  ]
+}

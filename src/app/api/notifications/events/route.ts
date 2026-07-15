@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 
 import { jsonError } from "@/lib/api/errors";
 import { requireApiUser } from "@/lib/auth/api";
@@ -21,6 +21,8 @@ const STATUS_FILTERS = new Set<NotificationEventStatus>([
   "skipped",
 ]);
 const TYPE_FILTERS = new Set(["certificate_expiring", "certificate_expired", "manual_test"]);
+const PROVIDER_FILTERS = new Set(["euatendo"]);
+const AUDIENCE_FILTERS = new Set(["internal", "client"]);
 
 type EmbeddedRecipient = {
   nome?: string | null;
@@ -33,6 +35,7 @@ type EventApiRow = {
   cliente_id: string | null;
   certificado_id: string | null;
   type: string;
+  audience?: string | null;
   dias_restantes: number | null;
   send_date: string;
   status: string;
@@ -44,7 +47,6 @@ type EventApiRow = {
   notification_recipients?: EmbeddedRecipient | EmbeddedRecipient[] | null;
   clientes?: unknown;
   certificados?: unknown;
-  reservation_token_hash?: string | null;
   provider_response?: unknown;
   [key: string]: unknown;
 };
@@ -63,6 +65,7 @@ function toFinanceiroEventDto(event: EventApiRow) {
     cliente_id: event.cliente_id,
     certificado_id: event.certificado_id,
     type: event.type,
+    audience: event.audience ?? "internal",
     dias_restantes: event.dias_restantes,
     send_date: event.send_date,
     status: event.status,
@@ -85,7 +88,6 @@ function toFinanceiroEventDto(event: EventApiRow) {
 
 function toAdminEventDto(event: EventApiRow) {
   const safeEvent = { ...event };
-  delete safeEvent.reservation_token_hash;
   delete safeEvent.provider_response;
   return safeEvent;
 }
@@ -100,6 +102,8 @@ export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const status = url.searchParams.get("status");
   const type = url.searchParams.get("type");
+  const provider = url.searchParams.get("provider");
+  const audience = url.searchParams.get("audience");
   const sendDate = url.searchParams.get("send_date");
   const recipientId = url.searchParams.get("recipient_id");
   const search = cleanSearch(url.searchParams.get("q"));
@@ -109,7 +113,7 @@ export async function GET(request: NextRequest) {
   let query = admin
     .from("notification_events")
     .select(
-      "id, cliente_id, certificado_id, recipient_id, telefone_destino, type, dias_restantes, send_date, status, provider, channel, device_id, reserved_at, reservation_expires_at, processing_started_at, sent_at, failed_at, attempt_count, max_attempts, next_retry_at, idempotency_key, error_message, created_at, updated_at, clientes(nome_razao_social, cnpj), certificados(nome_titular, data_vencimento), notification_recipients(nome, telefone_normalizado, ativo), whatsapp_devices(name)",
+      "id, cliente_id, certificado_id, recipient_id, telefone_destino, type, audience, dias_restantes, send_date, status, provider, channel, provider_message_id, provider_status, dispatched_at, delivered_at, read_at, reserved_at, reservation_expires_at, processing_started_at, sent_at, failed_at, attempt_count, max_attempts, next_retry_at, idempotency_key, error_message, created_at, updated_at, clientes(nome_razao_social, cnpj), certificados(nome_titular, data_vencimento), notification_recipients(nome, telefone_normalizado, ativo)",
       { count: "exact" },
     )
     .order("send_date", { ascending: true })
@@ -122,6 +126,14 @@ export async function GET(request: NextRequest) {
 
   if (type && TYPE_FILTERS.has(type)) {
     query = query.eq("type", type);
+  }
+
+  if (provider && PROVIDER_FILTERS.has(provider)) {
+    query = query.eq("provider", provider as "euatendo");
+  }
+
+  if (audience && AUDIENCE_FILTERS.has(audience)) {
+    query = query.eq("audience", audience as "internal" | "client");
   }
 
   if (sendDate && /^\d{4}-\d{2}-\d{2}$/.test(sendDate)) {
@@ -153,3 +165,4 @@ export async function GET(request: NextRequest) {
     pagination: createPaginationMeta(count, pagination.page, pagination.pageSize),
   });
 }
+

@@ -24,6 +24,20 @@ export function formatDateTime(date: string | null) {
   return new Date(date).toLocaleString("pt-BR");
 }
 
+export function formatDateTimeShort(date: string | null) {
+  if (!date) {
+    return "-";
+  }
+
+  return new Date(date).toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export function formatPhone(value: string | null | undefined) {
   if (!value) {
     return "-";
@@ -47,16 +61,50 @@ export function formatDaysLabel(days: number) {
   return `${days} ${Math.abs(days) === 1 ? "dia" : "dias"}`;
 }
 
+export function formatRelativeExpiration(days: number) {
+  if (days < 0) {
+    return `Vencido há ${formatDaysLabel(Math.abs(days))}`;
+  }
+
+  if (days === 0) {
+    return "Vence hoje";
+  }
+
+  if (days === 1) {
+    return "Vence amanhã";
+  }
+
+  return `Vence em ${formatDaysLabel(days)}`;
+}
+
+export function formatDisplayName(value: string | null | undefined) {
+  if (!value) {
+    return "-";
+  }
+
+  const normalized = value
+    .trim()
+    .replace(/_/g, " ")
+    .replace(/\s+/g, " ")
+    .replace(/^\d{6,}\s+/, "")
+    .replace(/\bsenha\b\s*[:.-]?\s*\S+/gi, "")
+    .replace(/\s+\(\d+\)$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return normalized || value.trim();
+}
+
 export function formatCertificateTitle(title: string, cnpj?: string | null) {
-  const trimmed = title.trim();
+  const trimmed = formatDisplayName(title);
   const cnpjDigits = cnpj?.replace(/\D/g, "");
 
   if (cnpjDigits) {
     const escapedDigits = cnpjDigits.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const formattedCnpj = formatCnpj(cnpjDigits).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const suffixPattern = new RegExp(`\\s*[:\\-–—]?\\s*(?:${escapedDigits}|${formattedCnpj})\\s*$`);
+    const suffixPattern = new RegExp(`\\s*[:\\-]?\\s*(?:${escapedDigits}|${formattedCnpj})\\s*$`);
     return trimmed.replace(suffixPattern, "").trim() || trimmed;
   }
 
-  return trimmed.replace(/\s*[:\-–—]\s*\d{14}\s*$/, "").trim() || trimmed;
+  return trimmed.replace(/\s*[:\-]\s*\d{14}\s*$/, "").trim() || trimmed;
 }

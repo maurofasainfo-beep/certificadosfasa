@@ -99,7 +99,7 @@ function buildFilesFromManifest(formData: FormData, manifest: ManifestEntry[]) {
     const file = formData.get(entry.field);
 
     if (!(file instanceof File)) {
-      throw new Error(`Arquivo ausente no pacote de importacao: ${entry.name}`);
+      throw new Error(`Arquivo ausente no pacote de importação: ${entry.name}`);
     }
 
     const path = normalizeRelativePath(entry.relativePath || entry.name);
@@ -152,14 +152,14 @@ export async function POST(request: NextRequest) {
   try {
     formData = await request.formData();
   } catch {
-    return jsonError("Requisicao invalida.", 400, "form_data_invalido");
+    return jsonError("Requisição inválida.", 400, "form_data_invalido");
   }
 
   const rawManifest = formData.get("manifest");
   const runNotifications = formData.get("run_notifications") !== "false";
 
   if (typeof rawManifest !== "string") {
-    return jsonError("Manifesto da importacao nao enviado.", 400, "manifesto_obrigatorio");
+    return jsonError("Manifesto da importação não enviado.", 400, "manifesto_obrigatorio");
   }
 
   let manifest: ManifestEntry[];
@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
   try {
     manifest = manifestSchema.parse(JSON.parse(rawManifest));
   } catch {
-    return jsonError("Manifesto da importacao invalido.", 400, "manifesto_invalido");
+    return jsonError("Manifesto da importação inválido.", 400, "manifesto_invalido");
   }
 
   let files: ImportFile[];
@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
   try {
     files = buildFilesFromManifest(formData, manifest);
   } catch (error) {
-    return jsonError(error instanceof Error ? error.message : "Pacote de importacao invalido.", 400, "arquivo_invalido");
+    return jsonError(error instanceof Error ? error.message : "Pacote de importação inválido.", 400, "arquivo_invalido");
   }
 
   const groups = groupFilesByFolder(files);
@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
 
   if (pfxCount > MAX_BULK_CERTIFICATES) {
     return jsonError(
-      `A importacao aceita no maximo ${MAX_BULK_CERTIFICATES} certificados por vez.`,
+      `A importação aceita no máximo ${MAX_BULK_CERTIFICATES} certificados por vez.`,
       413,
       "muitos_certificados",
     );
@@ -232,7 +232,7 @@ export async function POST(request: NextRequest) {
         falhas.push({
           pasta: folder,
           arquivo: pfxFile.name,
-          mensagem: error instanceof Error ? error.message : "Nao foi possivel ler o nome do arquivo de senha.",
+          mensagem: error instanceof Error ? error.message : "Não foi possível ler o nome do arquivo de senha.",
         });
       }
       continue;

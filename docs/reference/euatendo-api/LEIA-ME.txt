@@ -1,0 +1,18 @@
+Documentacao da API euatendo Cluster
+
+Arquivo principal:
+- DOCUMENTACAO_COMPLETA_API_EUATENDO.md
+
+Arquivos de apoio:
+- REANALISE_COMPLETA_API_EUATENDO.md: reanalise aprofundada com abas condicionais, campos, eventos e observacoes tecnicas.
+- api_endpoints_extraidos.json: estrutura tecnica dos endpoints extraidos.
+- endpoints.csv: inventario tabular para planilha.
+- campos_por_endpoint.csv: inventario de campos por endpoint.
+- postman_collection.json: colecao Postman com placeholders {{base_url}} e {{api_token}}.
+- codeblocks_complementares.json: blocos copiados da documentacao que nao ficam diretamente dentro dos cards de endpoint.
+- api_docs_component_minified.js: componente isolado da documentacao dentro do bundle da pagina.
+- prints/: capturas da aba aberta no Chrome, incluindo abas e rolagens.
+- pagina_api.html, index-CMYpy3gY.js, index-BFHuvWR4.css: fontes baixadas da pagina analisada.
+
+Observacao:
+- Nenhum token real foi copiado. A documentacao usa apenas o placeholder SEU_TOKEN_API.

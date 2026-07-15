@@ -6,7 +6,7 @@ import { extractFirstValidCnpj, extractValidCnpjs } from "./cnpj";
 
 export class PfxParseError extends Error {
   constructor() {
-    super("Senha incorreta ou certificado invalido.");
+    super("Senha incorreta ou certificado inválido.");
     this.name = "PfxParseError";
   }
 }

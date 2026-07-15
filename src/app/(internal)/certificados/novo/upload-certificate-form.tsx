@@ -13,6 +13,7 @@ type ClientOption = {
   email: string | null;
   telefone: string | null;
   whatsapp: string | null;
+  whatsapp_notifications_enabled?: boolean | null;
   responsavel: string | null;
   observacoes: string | null;
 };
@@ -29,6 +30,7 @@ function getClientFormData(client?: ClientOption) {
     email: client?.email ?? "",
     telefone: client?.telefone ?? "",
     whatsapp: client?.whatsapp ?? "",
+    whatsapp_notifications_enabled: client?.whatsapp_notifications_enabled ?? true,
     responsavel: client?.responsavel ?? "",
     observacoes: client?.observacoes ?? "",
   };
@@ -78,6 +80,7 @@ export function UploadCertificateForm({ clients, initialClientId = "" }: UploadC
     body.set("email", clientData.email);
     body.set("telefone", clientData.telefone);
     body.set("whatsapp", clientData.whatsapp);
+    body.set("whatsapp_notifications_enabled", String(clientData.whatsapp_notifications_enabled));
     body.set("responsavel", clientData.responsavel);
     body.set("observacoes", clientData.observacoes);
 
@@ -108,8 +111,8 @@ export function UploadCertificateForm({ clients, initialClientId = "" }: UploadC
   }
 
   return (
-    <form onSubmit={handleSubmit} className="grid gap-4 rounded-3xl border border-blue-100/70 bg-white/84 p-4 shadow-sm shadow-blue-950/5 ring-1 ring-white/80 backdrop-blur-xl sm:p-5">
-      <div className="rounded-3xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+    <form onSubmit={handleSubmit} className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/5 sm:p-5">
+      <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
         Cadastre o cliente e o certificado nesta tela. Depois, as informações do cliente devem ser editadas no detalhe
         do certificado.
       </div>
@@ -118,7 +121,7 @@ export function UploadCertificateForm({ clients, initialClientId = "" }: UploadC
         <label htmlFor="arquivo" className="text-sm font-medium text-slate-800">
           Arquivo PFX
         </label>
-        <div className="rounded-3xl border border-dashed border-blue-200 bg-blue-50/45 p-4 transition duration-200 hover:border-blue-300 hover:bg-blue-50/70">
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 transition duration-200 hover:border-blue-300 hover:bg-blue-50/50">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm font-semibold text-slate-950">{file?.name ?? "Selecione um certificado .pfx"}</p>
@@ -131,7 +134,7 @@ export function UploadCertificateForm({ clients, initialClientId = "" }: UploadC
               accept=".pfx"
               required
               onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-              className="block max-w-full rounded-2xl border border-blue-100 bg-white/90 text-sm text-slate-700 outline-none transition file:mr-4 file:h-10 file:border-0 file:bg-blue-600 file:px-4 file:text-sm file:font-semibold file:text-white hover:file:bg-blue-700 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+              className="block max-w-full rounded-xl border border-slate-200 bg-white text-sm text-slate-700 outline-none transition file:mr-4 file:h-10 file:border-0 file:bg-blue-600 file:px-4 file:text-sm file:font-semibold file:text-white hover:file:bg-blue-700 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
             />
           </div>
         </div>
@@ -175,7 +178,7 @@ export function UploadCertificateForm({ clients, initialClientId = "" }: UploadC
         </p>
       </div>
 
-      <div className="grid gap-3 rounded-3xl border border-blue-100/80 bg-blue-50/35 p-4">
+      <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
         <h3 className="text-sm font-semibold text-slate-950">Dados do cliente</h3>
         <div className="grid gap-3 md:grid-cols-2">
           <label className="grid gap-2 text-sm font-medium text-slate-800">
@@ -199,14 +202,27 @@ export function UploadCertificateForm({ clients, initialClientId = "" }: UploadC
           <label className="grid gap-2 text-sm font-medium text-slate-800">
             WhatsApp
             <input
-              required
               value={clientData.whatsapp}
               onChange={(event) => patchClientData({ whatsapp: event.target.value })}
               placeholder="(11) 99999-9999"
               className={inputClass}
             />
             <span className="text-xs font-normal text-slate-500">
-              Este telefone aparece nos avisos internos de vencimento para contato com o cliente.
+              Opcional. Quando preenchido, pode receber avisos automáticos conforme as configurações.
+            </span>
+          </label>
+          <label className="md:col-span-2 inline-flex items-start gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-medium text-slate-800">
+            <input
+              type="checkbox"
+              checked={!clientData.whatsapp_notifications_enabled}
+              onChange={(event) => patchClientData({ whatsapp_notifications_enabled: !event.target.checked })}
+              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600"
+            />
+            <span>
+              Não enviar notificações WhatsApp para este cliente
+              <span className="mt-1 block text-xs font-normal text-slate-500">
+                Os avisos internos para a equipe continuam funcionando normalmente.
+              </span>
             </span>
           </label>
           <label className="grid gap-2 text-sm font-medium text-slate-800">

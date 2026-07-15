@@ -13,6 +13,7 @@ type ClientEditFormProps = {
     email: string | null;
     telefone: string | null;
     whatsapp: string | null;
+    whatsapp_notifications_enabled?: boolean | null;
     responsavel: string | null;
     observacoes: string | null;
   };
@@ -31,6 +32,7 @@ export function ClientEditForm({ initialClient }: ClientEditFormProps) {
     email: initialClient.email ?? "",
     telefone: initialClient.telefone ?? "",
     whatsapp: initialClient.whatsapp ?? "",
+    whatsapp_notifications_enabled: initialClient.whatsapp_notifications_enabled ?? true,
     responsavel: initialClient.responsavel ?? "",
     observacoes: initialClient.observacoes ?? "",
   });
@@ -70,7 +72,7 @@ export function ClientEditForm({ initialClient }: ClientEditFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-4 grid gap-4 rounded-3xl border border-blue-100/70 bg-white/84 p-4 shadow-sm shadow-blue-950/5 ring-1 ring-white/80 backdrop-blur-xl sm:p-5">
+    <form onSubmit={handleSubmit} className="mt-4 grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/5 sm:p-5">
       <div>
         <h3 className="text-base font-semibold text-slate-950">Cliente vinculado</h3>
         <p className="mt-1 text-sm text-slate-600">
@@ -99,14 +101,27 @@ export function ClientEditForm({ initialClient }: ClientEditFormProps) {
         <label className="grid gap-2 text-sm font-medium text-slate-800">
           WhatsApp
           <input
-            required
             value={clientData.whatsapp}
             onChange={(event) => patchClientData({ whatsapp: event.target.value })}
             placeholder="(11) 99999-9999"
             className={inputClass}
           />
           <span className="text-xs font-normal text-slate-500">
-            Este telefone aparece nos avisos internos de vencimento para contato com o cliente.
+            Opcional. Quando preenchido, pode receber avisos automáticos conforme as configurações.
+          </span>
+        </label>
+        <label className="md:col-span-2 inline-flex items-start gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-medium text-slate-800">
+          <input
+            type="checkbox"
+            checked={!clientData.whatsapp_notifications_enabled}
+            onChange={(event) => patchClientData({ whatsapp_notifications_enabled: !event.target.checked })}
+            className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600"
+          />
+          <span>
+            Não enviar notificações WhatsApp para este cliente
+            <span className="mt-1 block text-xs font-normal text-slate-500">
+              Os avisos internos para a equipe continuam funcionando normalmente.
+            </span>
           </span>
         </label>
         <label className="grid gap-2 text-sm font-medium text-slate-800">

@@ -1,0 +1,27 @@
+secao;metodo;rota;descricao
+Instâncias;GET;/list-instances;Lista todas as instâncias da empresa com seus dados principais.
+Instâncias;POST;/create-instance;Cria uma nova instância. Opcionalmente permite escolher o tipo de servidor.
+Instâncias;POST;/proxy-managed-cities;Lista cidades disponíveis no proxy regional gerenciado WhatsPRO para uma instância. Chame após create-instance e antes de connect-instance quando quiser usar proxy.
+Instâncias;POST;/connect-instance;"Conecta uma instância ao WhatsApp. Retorna QR Code ou código de pareamento. Se já estiver conectada, retorna sucesso imediatamente. Instâncias WhatsPRO podem enviar proxyManaged opcional (ver seção acima)."
+Instâncias;POST;/check-instance-status;Verifica o status atual de uma instância e atualiza os dados do perfil conectado.
+Instâncias;POST;/delete-instance;Deleta uma instância e remove do banco de dados.
+Mensagens;POST;/send-text-message;Envia uma mensagem de texto simples.
+Mensagens;POST;/send-media-message;"Envia uma mensagem com mídia (imagem, vídeo, áudio ou documento). Suporta URL, Base64 ou upload de arquivo."
+Mensagens;POST;/get-message-status;Obtém o status ou histórico de mensagens. Funciona de forma diferente para cada tipo de servidor.
+Mensagens;POST;/check-number-whatsapp;Verifica se um ou mais números de telefone possuem WhatsApp válido.
+Contatos;POST;/get-instance-contacts;Retorna a lista de contatos salvos na instância do WhatsApp.
+Contatos;POST;/send-contact;Envia um contato (vCard) para um número de WhatsApp. Disponível apenas para euAtendo PRO.
+Webhooks;POST;/set-instance-webhook;Obtém a configuração atual do webhook da instância. Envie apenas o instanceId para consultar.
+Webhooks;POST;/set-instance-webhook;Configura o webhook para receber eventos da instância do WhatsApp.
+PIX;POST;/send-pix-button;Envia uma mensagem com botão de pagamento PIX.
+PIX;POST;/send-copy-button;"Envia uma mensagem com botão de copiar texto. Útil para enviar códigos PIX, cupons, senhas temporárias, etc. Suporta imagem opcional via URL ou upload de arquivo."
+Presença;POST;/send-chat-presence;"Envia presença no chat (digitando, gravando áudio ou parar o indicador). Disponível para instâncias WhatsPRO, euAtendo GO e ZuckPRO. Não consome limite diário/mensal de mensagens."
+Presença;POST;/set-instance-presence;Define se a conta WhatsPRO aparece online (available) ou offline (unavailable) no WhatsApp. Exclusivo euAtendo PRO — a API GO não possui endpoint equivalente.
+Pagamentos;POST;/send-request-payment;"Envia uma solicitação de pagamento com o botão nativo 'Revisar e Pagar' do WhatsApp. Suporta PIX, boleto, link de pagamento e anexo de documento."
+Templates;POST;/sync-whatsapp-templates;Sincroniza os templates de mensagem do Meta Business com o sistema. Execute antes de enviar templates para garantir que estão atualizados.
+Templates;POST;/send-template-message;"Envia uma mensagem de template aprovado. Suporta variáveis de header, body e botões dinâmicos."
+Templates;POST;/send-text-message;Envia mensagem de texto simples via Cloud API. Funciona da mesma forma que para outras instâncias.
+Templates;POST;/send-media-message;"Envia mídia (imagem, vídeo, áudio, documento) via Cloud API."
+Botões;POST;/send-buttons-message;Envia uma mensagem interativa com botões para um contato ou grupo do WhatsApp. Suporta múltiplos tipos de botões e header com mídia.
+SMS;POST;/sms-send-message;Envia uma mensagem SMS para um ou mais destinatários.
+SMS;POST;/sms-sync-status;Sincroniza o status de entrega das mensagens SMS enviadas.

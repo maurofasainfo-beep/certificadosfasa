@@ -2,7 +2,7 @@ export function normalizeBrazilianPhone(value: string) {
   const digits = value.replace(/\D/g, "");
 
   if (!digits) {
-    throw new Error("Informe um WhatsApp valido.");
+    throw new Error("Informe um WhatsApp válido.");
   }
 
   const withoutCountry = digits.startsWith("55") ? digits.slice(2) : digits;

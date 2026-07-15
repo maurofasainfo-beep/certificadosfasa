@@ -17,14 +17,8 @@ export type NotificationEventStatus =
   | "failed"
   | "cancelled"
   | "skipped";
-export type WhatsappDeviceStatus =
-  | "created"
-  | "pending_activation"
-  | "active"
-  | "disconnected"
-  | "error"
-  | "revoked"
-  | "expired";
+export type NotificationProvider = "euatendo";
+export type NotificationAudience = "internal" | "client";
 
 export type Database = {
   public: {
@@ -59,6 +53,7 @@ export type Database = {
           email: string | null;
           telefone: string | null;
           whatsapp: string | null;
+          whatsapp_notifications_enabled: boolean;
           responsavel: string | null;
           observacoes: string | null;
           created_at: string;
@@ -71,6 +66,7 @@ export type Database = {
           email?: string | null;
           telefone?: string | null;
           whatsapp?: string | null;
+          whatsapp_notifications_enabled?: boolean;
           responsavel?: string | null;
           observacoes?: string | null;
           created_at?: string;
@@ -258,7 +254,6 @@ export type Database = {
           delay_maximo_segundos: number;
           max_attempts: number;
           polling_interval_seconds: number;
-          heartbeat_interval_seconds: number;
           send_window_start: string;
           send_window_end: string;
           timezone: string;
@@ -274,7 +269,6 @@ export type Database = {
           delay_maximo_segundos?: number;
           max_attempts?: number;
           polling_interval_seconds?: number;
-          heartbeat_interval_seconds?: number;
           send_window_start?: string;
           send_window_end?: string;
           timezone?: string;
@@ -330,54 +324,6 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["notification_templates"]["Insert"]>;
         Relationships: [];
       };
-      whatsapp_devices: {
-        Row: {
-          id: string;
-          name: string;
-          token_hash: string;
-          signing_secret_hash: string;
-          signing_secret_ciphertext: string;
-          signing_secret_iv: string;
-          signing_secret_auth_tag: string;
-          status: WhatsappDeviceStatus;
-          is_primary_sender: boolean;
-          connected_phone: string | null;
-          browser_name: string | null;
-          user_agent: string | null;
-          app_version: string | null;
-          last_seen_at: string | null;
-          last_connected_at: string | null;
-          last_disconnected_at: string | null;
-          created_by: string | null;
-          created_at: string;
-          updated_at: string;
-          revoked_at: string | null;
-        };
-        Insert: {
-          id?: string;
-          name: string;
-          token_hash: string;
-          signing_secret_hash: string;
-          signing_secret_ciphertext: string;
-          signing_secret_iv: string;
-          signing_secret_auth_tag: string;
-          status?: WhatsappDeviceStatus;
-          is_primary_sender?: boolean;
-          connected_phone?: string | null;
-          browser_name?: string | null;
-          user_agent?: string | null;
-          app_version?: string | null;
-          last_seen_at?: string | null;
-          last_connected_at?: string | null;
-          last_disconnected_at?: string | null;
-          created_by?: string | null;
-          created_at?: string;
-          updated_at?: string;
-          revoked_at?: string | null;
-        };
-        Update: Partial<Database["public"]["Tables"]["whatsapp_devices"]["Insert"]>;
-        Relationships: [];
-      };
       notification_events: {
         Row: {
           id: string;
@@ -391,11 +337,15 @@ export type Database = {
           send_date: string;
           mensagem_renderizada: string;
           status: NotificationEventStatus;
-          provider: string;
+          provider: NotificationProvider;
+          audience: NotificationAudience;
           channel: string;
-          device_id: string | null;
+          provider_message_id: string | null;
+          provider_status: string | null;
+          dispatched_at: string | null;
+          delivered_at: string | null;
+          read_at: string | null;
           reservation_id: string | null;
-          reservation_token_hash: string | null;
           reserved_at: string | null;
           reservation_expires_at: string | null;
           processing_started_at: string | null;
@@ -423,11 +373,15 @@ export type Database = {
           send_date: string;
           mensagem_renderizada: string;
           status?: NotificationEventStatus;
-          provider?: string;
+          provider?: NotificationProvider;
+          audience?: NotificationAudience;
           channel?: string;
-          device_id?: string | null;
+          provider_message_id?: string | null;
+          provider_status?: string | null;
+          dispatched_at?: string | null;
+          delivered_at?: string | null;
+          read_at?: string | null;
           reservation_id?: string | null;
-          reservation_token_hash?: string | null;
           reserved_at?: string | null;
           reservation_expires_at?: string | null;
           processing_started_at?: string | null;
@@ -463,33 +417,74 @@ export type Database = {
             referencedRelation: "notification_recipients";
             referencedColumns: ["id"];
           },
-          {
-            foreignKeyName: "notification_events_device_id_fkey";
-            columns: ["device_id"];
-            referencedRelation: "whatsapp_devices";
-            referencedColumns: ["id"];
-          },
         ];
       };
-      whatsapp_device_logs: {
+      whatsapp_dispatcher_state: {
+        Row: {
+          provider: "euatendo";
+          last_dispatch_at: string | null;
+          next_allowed_send_at: string;
+          locked_until: string | null;
+          lock_id: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          provider: "euatendo";
+          last_dispatch_at?: string | null;
+          next_allowed_send_at?: string;
+          locked_until?: string | null;
+          lock_id?: string | null;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["whatsapp_dispatcher_state"]["Insert"]>;
+        Relationships: [];
+      };
+      whatsapp_provider_logs: {
         Row: {
           id: string;
-          device_id: string | null;
-          event_type: string;
-          message: string | null;
+          provider: NotificationProvider;
+          event_id: string | null;
+          audience: NotificationAudience | null;
+          operation: string;
+          telefone_mascarado: string | null;
+          template_type: string | null;
+          duration_ms: number | null;
+          status: "started" | "sent" | "retry" | "failed" | "skipped" | "locked" | "waiting" | "error";
+          attempt_count: number | null;
+          error_code: string | null;
+          error_message: string | null;
+          request_id: string | null;
+          response_id: string | null;
           metadata: Json;
           created_at: string;
         };
         Insert: {
           id?: string;
-          device_id?: string | null;
-          event_type: string;
-          message?: string | null;
+          provider: NotificationProvider;
+          event_id?: string | null;
+          audience?: NotificationAudience | null;
+          operation: string;
+          telefone_mascarado?: string | null;
+          template_type?: string | null;
+          duration_ms?: number | null;
+          status: "started" | "sent" | "retry" | "failed" | "skipped" | "locked" | "waiting" | "error";
+          attempt_count?: number | null;
+          error_code?: string | null;
+          error_message?: string | null;
+          request_id?: string | null;
+          response_id?: string | null;
           metadata?: Json;
           created_at?: string;
         };
-        Update: Partial<Database["public"]["Tables"]["whatsapp_device_logs"]["Insert"]>;
-        Relationships: [];
+        Update: Partial<Database["public"]["Tables"]["whatsapp_provider_logs"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_provider_logs_event_id_fkey";
+            columns: ["event_id"];
+            referencedRelation: "notification_events";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       notification_runs: {
         Row: {
@@ -521,38 +516,6 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["notification_runs"]["Insert"]>;
         Relationships: [];
       };
-      qwep_seen_nonces: {
-        Row: {
-          nonce_hash: string;
-          device_id: string;
-          expires_at: string;
-          created_at: string;
-        };
-        Insert: {
-          nonce_hash: string;
-          device_id: string;
-          expires_at: string;
-          created_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["qwep_seen_nonces"]["Insert"]>;
-        Relationships: [];
-      };
-      qwep_rate_limit_buckets: {
-        Row: {
-          key: string;
-          count: number;
-          reset_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          key: string;
-          count?: number;
-          reset_at: string;
-          updated_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["qwep_rate_limit_buckets"]["Insert"]>;
-        Relationships: [];
-      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -567,6 +530,7 @@ export type Database = {
           p_email: string | null;
           p_telefone: string | null;
           p_whatsapp: string | null;
+          p_whatsapp_notifications_enabled: boolean;
           p_responsavel: string | null;
           p_observacoes: string | null;
           p_nome_titular: string;
@@ -609,38 +573,18 @@ export type Database = {
         Args: Record<string, never>;
         Returns: Json;
       };
-      get_whatsapp_bot_message_stats: {
-        Args: Record<string, never>;
-        Returns: Json;
-      };
-      cleanup_qwep_operational_tables: {
-        Args: Record<string, never>;
-        Returns: Json;
-      };
-      reserve_pending_notification_events: {
+      reserve_euatendo_notification_event: {
         Args: {
-          target_device_id: string;
-          batch_limit?: number;
-          reservation_ttl_seconds_input?: number;
+          p_lock_ttl_seconds?: number;
+          p_ignore_next_allowed?: boolean;
         };
-        Returns: {
-          id: string;
-          type: string;
-          telefone_destino: string;
-          mensagem_renderizada: string;
-          idempotency_key: string | null;
-          reservation_id: string;
-          reservation_token: string;
-          attempt_count: number;
-          max_attempts: number;
-        }[];
+        Returns: Json;
       };
     };
     Enums: {
       user_role: UserRole;
       certificado_status: CertificadoStatus;
       notification_event_status: NotificationEventStatus;
-      whatsapp_device_status: WhatsappDeviceStatus;
     };
     CompositeTypes: Record<string, never>;
   };

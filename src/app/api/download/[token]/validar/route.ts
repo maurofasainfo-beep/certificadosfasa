@@ -33,7 +33,7 @@ function getUserAgent(request: NextRequest) {
 }
 
 function unavailable() {
-  return jsonError("Este link ja foi utilizado ou esta invalido.", 404, "link_indisponivel");
+  return jsonError("Este link já foi utilizado ou está inválido.", 404, "link_indisponivel");
 }
 
 export async function POST(request: NextRequest, { params }: PublicDownloadRouteProps) {

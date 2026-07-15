@@ -38,7 +38,7 @@ export function DeleteCertificateButton({ certificadoId }: { certificadoId: stri
   }
 
   return (
-    <div className="mt-4 rounded-3xl border border-red-200 bg-white/84 p-4 shadow-sm shadow-red-100/60 ring-1 ring-red-100/60 backdrop-blur-xl sm:p-5">
+    <div className="mt-4 rounded-2xl border border-red-200 bg-white p-4 shadow-sm shadow-red-100/60 sm:p-5">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h3 className="text-base font-semibold text-red-800">Exclusão administrativa</h3>

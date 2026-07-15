@@ -25,7 +25,7 @@ export async function PATCH(request: NextRequest, { params }: RecipientRouteProp
   const parsed = notificationRecipientUpdateSchema.safeParse(body);
 
   if (!parsed.success) {
-    return jsonError(parsed.error.issues[0]?.message ?? "Dados invalidos.", 400, "validacao");
+    return jsonError(parsed.error.issues[0]?.message ?? "Dados inválidos.", 400, "validacao");
   }
 
   const { id } = await params;

@@ -208,7 +208,7 @@ async function postImportBatch(batchFiles: File[]) {
   const payload = (await response.json()) as ImportResponse & ImportErrorResponse;
 
   if (!response.ok) {
-    throw new Error(payload.error?.message ?? "Nao foi possivel importar este lote.");
+    throw new Error(payload.error?.message ?? "Não foi possível importar este lote.");
   }
 
   return payload;
@@ -218,7 +218,7 @@ async function importBatchWithFallback(batchFiles: File[]) {
   try {
     return await postImportBatch(batchFiles);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Falha de comunicacao com o servidor.";
+    const message = error instanceof Error ? error.message : "Falha de comunicação com o servidor.";
     const folderBatches = splitFilesByFolder(batchFiles);
 
     if (folderBatches.length <= 1) {
@@ -252,9 +252,9 @@ function ImportResultList({ title, items, tone }: { title: string; items: Import
   }[tone];
 
   return (
-    <div className="rounded-3xl border border-blue-100 bg-white p-4 shadow-sm shadow-blue-950/5">
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/5">
       <h3 className="text-sm font-semibold text-slate-950">{title}</h3>
-      <div className="mt-3 divide-y divide-blue-50 overflow-hidden rounded-2xl border border-blue-100">
+      <div className="mt-3 divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200">
         {items.map((item, index) => (
           <div key={`${item.pasta}-${item.arquivo}-${index}`} className="grid gap-2 bg-white px-3 py-3 text-sm md:grid-cols-[1.2fr_1fr_1fr_1.4fr] md:items-center">
             <div>
@@ -263,7 +263,7 @@ function ImportResultList({ title, items, tone }: { title: string; items: Import
             </div>
             <div className="text-slate-700">{item.cnpj ? formatCnpj(item.cnpj) : "-"}</div>
             <div className="text-slate-700">{item.data_vencimento ? formatDate(item.data_vencimento) : "-"}</div>
-            <div className={`rounded-2xl border px-3 py-2 text-xs font-semibold ${toneClass}`}>
+            <div className={`rounded-xl border px-3 py-2 text-xs font-semibold ${toneClass}`}>
               {item.mensagem ?? (item.status ? `Importado como ${item.status}` : "Processado")}
             </div>
           </div>
@@ -306,7 +306,7 @@ export function BulkImportCertificatesForm() {
     setResult(null);
 
     if (files.length === 0) {
-      setError("Selecione a pasta onde estao os certificados.");
+      setError("Selecione a pasta onde estão os certificados.");
       return;
     }
 
@@ -339,7 +339,7 @@ export function BulkImportCertificatesForm() {
       setProgress(null);
       router.refresh();
     } catch {
-      setError("Falha de comunicacao com o servidor.");
+      setError("Falha de comunicação com o servidor.");
       setPending(false);
       setProgress(null);
     }
@@ -347,8 +347,8 @@ export function BulkImportCertificatesForm() {
 
   return (
     <div className="grid gap-4">
-      <form onSubmit={handleSubmit} className="grid gap-4 rounded-3xl border border-blue-100/70 bg-white p-4 shadow-sm shadow-blue-950/5 ring-1 ring-white/80 sm:p-5">
-        <div className="rounded-3xl border border-blue-100 bg-blue-50/70 p-4">
+      <form onSubmit={handleSubmit} className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/5 sm:p-5">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
           <div className="flex gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-white">
               <Info aria-hidden="true" className="h-5 w-5" />
@@ -360,10 +360,10 @@ export function BulkImportCertificatesForm() {
                 <span className="font-semibold"> .pfx </span>
                 e um arquivo
                 <span className="font-semibold"> .txt </span>
-                cujo nome e a senha do certificado. Nesta carga, o telefone do cliente nao e obrigatorio.
-                Subpastas dentro da pasta do cliente serao ignoradas.
+                cujo nome é a senha do certificado. Nesta carga, o telefone do cliente não é obrigatório.
+                Subpastas dentro da pasta do cliente serão ignoradas.
               </p>
-              <p className="mt-2 rounded-2xl bg-white/75 px-3 py-2 font-mono text-xs text-slate-600">
+              <p className="mt-2 rounded-xl bg-white px-3 py-2 font-mono text-xs text-slate-600 ring-1 ring-slate-200">
                 certificados / Cliente ABC / certificado.pfx + 123456.txt
               </p>
             </div>
@@ -372,14 +372,14 @@ export function BulkImportCertificatesForm() {
 
         <label className="grid gap-2 text-sm font-medium text-slate-800">
           Pasta de certificados
-          <div className="rounded-3xl border border-dashed border-blue-200 bg-blue-50/40 p-5 transition duration-200 hover:border-blue-300 hover:bg-blue-50/70">
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 transition duration-200 hover:border-blue-300 hover:bg-blue-50/50">
             <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
               <div>
                 <p className="text-sm font-semibold text-slate-950">
                   {files.length > 0 ? `${files.length} arquivos selecionados` : "Selecione a pasta principal"}
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  A importacao processa os certificados um por vez e mostra um relatorio por arquivo.
+                  A importação processa os certificados um por vez e mostra um relatório por arquivo.
                 </p>
               </div>
               <input
@@ -387,7 +387,7 @@ export function BulkImportCertificatesForm() {
                 multiple
                 accept=".pfx,.txt"
                 onChange={handleFilesChange}
-                className="block max-w-full rounded-2xl border border-blue-100 bg-white/90 text-sm text-slate-700 outline-none transition file:mr-4 file:h-10 file:border-0 file:bg-blue-600 file:px-4 file:text-sm file:font-semibold file:text-white hover:file:bg-blue-700 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                className="block max-w-full rounded-xl border border-slate-200 bg-white text-sm text-slate-700 outline-none transition file:mr-4 file:h-10 file:border-0 file:bg-blue-600 file:px-4 file:text-sm file:font-semibold file:text-white hover:file:bg-blue-700 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                 {...directoryInputProps}
               />
             </div>
@@ -395,7 +395,7 @@ export function BulkImportCertificatesForm() {
         </label>
 
         {files.length > 0 ? (
-          <div className="grid gap-2 rounded-3xl border border-blue-100 bg-white px-4 py-3 text-sm sm:grid-cols-5">
+          <div className="grid gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm shadow-slate-950/5 sm:grid-cols-5">
             <div>
               <p className="text-xs text-slate-500">Pastas detectadas</p>
               <p className="text-lg font-semibold text-slate-950">{fileSummary.folders}</p>
@@ -420,8 +420,8 @@ export function BulkImportCertificatesForm() {
         ) : null}
 
         {progress ? (
-          <div className="rounded-2xl border border-blue-100 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-800">
-            Processando lote {progress.current} de {progress.total}. Mantenha esta tela aberta ate finalizar.
+          <div className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-800" role="status">
+            Processando lote {progress.current} de {progress.total}. Mantenha esta tela aberta até finalizar.
           </div>
         ) : null}
 
@@ -439,14 +439,14 @@ export function BulkImportCertificatesForm() {
             ) : (
               <FolderUp aria-hidden="true" className="h-4 w-4" />
             )}
-            Importar certificados
+            {pending ? "Importando certificados" : "Importar certificados"}
           </button>
         </div>
       </form>
 
       {result ? (
         <div className="grid gap-4">
-          <div className="grid gap-3 rounded-3xl border border-blue-100 bg-white p-4 shadow-sm shadow-blue-950/5 sm:grid-cols-4">
+          <div className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/5 sm:grid-cols-4">
             <div>
               <p className="text-xs text-slate-500">Encontrados</p>
               <p className="text-2xl font-semibold text-slate-950">{result.resumo.certificados_encontrados}</p>

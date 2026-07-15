@@ -42,7 +42,10 @@ export function PaginationBar({
   const nextPage = Math.min(page + 1, totalPages);
 
   return (
-    <div className="flex flex-col gap-2 rounded-2xl border border-blue-100/70 bg-white/70 px-3 py-2 text-sm text-slate-500 shadow-sm shadow-blue-950/5 sm:flex-row sm:items-center sm:justify-between">
+    <nav
+      className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm shadow-slate-950/5 sm:flex-row sm:items-center sm:justify-between"
+      aria-label={`Paginação de ${itemLabel}`}
+    >
       <p className="text-center sm:text-left">
         Mostrando {from}-{to} de {total} {itemLabel}.
       </p>
@@ -50,6 +53,7 @@ export function PaginationBar({
         <Link
           href={buildHref(basePath, searchParams, previousPage, pageSize)}
           aria-disabled={page <= 1}
+          aria-label="Página anterior"
           className={cn(buttonClass("secondary", "min-h-9 px-3 text-xs"), page <= 1 && "pointer-events-none opacity-50")}
         >
           Anterior
@@ -60,6 +64,7 @@ export function PaginationBar({
         <Link
           href={buildHref(basePath, searchParams, nextPage, pageSize)}
           aria-disabled={page >= totalPages}
+          aria-label="Próxima página"
           className={cn(
             buttonClass("secondary", "min-h-9 px-3 text-xs"),
             page >= totalPages && "pointer-events-none opacity-50",
@@ -68,6 +73,6 @@ export function PaginationBar({
           Próxima
         </Link>
       </div>
-    </div>
+    </nav>
   );
 }

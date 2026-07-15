@@ -9,7 +9,7 @@ import { wasCertificateRenewed } from "@/lib/certificados/renewal";
 import { calculateCertificateStatus } from "@/lib/certificados/status";
 import { SETTINGS_ID } from "@/lib/notifications/engine";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { formatCertificateTitle, formatCnpj, formatDate, formatDateTime, formatPhone } from "@/lib/utils/format";
+import { formatCertificateTitle, formatCnpj, formatDate, formatDateTime, formatDisplayName, formatPhone } from "@/lib/utils/format";
 
 import { ClientEditForm } from "./client-edit-form";
 import { DeleteCertificateButton } from "./delete-certificate-button";
@@ -28,7 +28,7 @@ export default async function CertificadoDetalhePage({ params }: CertificadoDeta
   const { data: certificado } = await supabase
     .from("certificados")
     .select(
-      "id, cnpj, nome_titular, data_emissao, data_vencimento, status, nome_arquivo_original, hash_arquivo, ultimo_upload_em, created_at, clientes(id, nome_razao_social, cnpj, email, telefone, whatsapp, responsavel, observacoes)",
+      "id, cnpj, nome_titular, data_emissao, data_vencimento, status, nome_arquivo_original, hash_arquivo, ultimo_upload_em, created_at, clientes(id, nome_razao_social, cnpj, email, telefone, whatsapp, whatsapp_notifications_enabled, responsavel, observacoes)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -61,8 +61,9 @@ export default async function CertificadoDetalhePage({ params }: CertificadoDeta
   const renovado = wasCertificateRenewed(certificado.created_at, certificado.ultimo_upload_em);
 
   const rows = [
-    ["Cliente", certificado.clientes?.nome_razao_social ?? "-"],
+    ["Cliente", formatDisplayName(certificado.clientes?.nome_razao_social) || "-"],
     ["WhatsApp", formatPhone(certificado.clientes?.whatsapp ?? certificado.clientes?.telefone)],
+    ["Avisos WhatsApp ao cliente", certificado.clientes?.whatsapp_notifications_enabled === false ? "Bloqueados" : "Permitidos"],
     ["Responsável", certificado.clientes?.responsavel ?? "-"],
     ["E-mail", certificado.clientes?.email ?? "-"],
     ["Titular", formatCertificateTitle(certificado.nome_titular, certificado.cnpj)],
@@ -88,8 +89,8 @@ export default async function CertificadoDetalhePage({ params }: CertificadoDeta
           </Link>
         }
       />
-      <dl className="grid gap-0 overflow-hidden rounded-3xl border border-blue-100/70 bg-white/86 shadow-sm shadow-blue-950/5 ring-1 ring-white/80 backdrop-blur-xl">
-        <div className="grid gap-1 border-b border-blue-100/80 bg-blue-50/70 px-4 py-3 md:grid-cols-[180px_1fr]">
+      <dl className="grid gap-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm shadow-slate-950/5">
+        <div className="grid gap-1 border-b border-slate-200 bg-slate-50 px-4 py-3 md:grid-cols-[180px_1fr]">
           <dt className="text-sm font-medium text-slate-600">Status</dt>
           <dd className="flex flex-wrap gap-1.5">
             <StatusBadge status={status} />
@@ -97,7 +98,7 @@ export default async function CertificadoDetalhePage({ params }: CertificadoDeta
           </dd>
         </div>
         {rows.map(([label, value]) => (
-          <div key={label} className="grid gap-1 border-b border-blue-100/70 px-4 py-2.5 last:border-b-0 md:grid-cols-[180px_1fr]">
+          <div key={label} className="grid gap-1 border-b border-slate-200 px-4 py-2.5 last:border-b-0 md:grid-cols-[180px_1fr]">
             <dt className="text-sm font-medium text-slate-600">{label}</dt>
             <dd className="break-words text-sm font-medium text-slate-950">{value}</dd>
           </div>
@@ -111,6 +112,7 @@ export default async function CertificadoDetalhePage({ params }: CertificadoDeta
             email: certificado.clientes.email,
             telefone: certificado.clientes.telefone,
             whatsapp: certificado.clientes.whatsapp,
+            whatsapp_notifications_enabled: certificado.clientes.whatsapp_notifications_enabled,
             responsavel: certificado.clientes.responsavel,
             observacoes: certificado.clientes.observacoes,
           }}
