@@ -151,7 +151,7 @@ docs/reference
 - `links_download`: links publicos com `token_hash`, `senha_hash`, uso unico, bloqueio por tentativas e auditoria de uso.
 - `audit_logs`: trilha de auditoria de acoes administrativas e publicas relevantes.
 - `storage_reconciliation_jobs`: controle de reconciliacao quando Storage e banco podem divergir.
-- `configuracoes_sistema`: configuracoes gerais do sistema.
+- `configuracoes_sistema`: configuracoes gerais do sistema, incluindo `senha_admin_certificado_hash` para liberar a visualizacao controlada da senha PFX.
 - `notification_settings`: configuracoes globais dos avisos.
 - `notification_templates`: templates permitidos.
 - `notification_recipients`: destinatarios internos.
@@ -159,6 +159,10 @@ docs/reference
 - `notification_runs`: historico de execucoes do engine.
 - `whatsapp_dispatcher_state`: lock e cadencia persistente do dispatcher euAtendo.
 - `whatsapp_provider_logs`: logs sanitizados dos envios euAtendo.
+
+### Senha administrativa de certificado
+
+`configuracoes_sistema.senha_admin_certificado_hash` guarda o hash `scrypt` da senha administrativa exigida para revelar a senha PFX em `/certificados/[id]`. A senha administrativa nao deve ser armazenada em texto puro. Gere o hash localmente com `npm run security:hash-cert-admin-password` usando `CERTIFICATE_ADMIN_PASSWORD` e aplique o `UPDATE` gerado no Supabase.
 
 ### Relacionamentos
 
@@ -384,7 +388,7 @@ Crons usam `Authorization: Bearer {CRON_SECRET}` ou header `x-cron-secret`.
 
 ### Certificados
 
-`/certificados` lista certificados com filtros, status e acoes. O detalhe permite editar cliente, gerar link publico, invalidar link, baixar metadados, excluir certificado e enviar aviso manual ao cliente.
+`/certificados` lista certificados com filtros, status e acoes. O detalhe permite editar cliente, gerar link publico, invalidar link, baixar metadados, excluir certificado, enviar aviso manual ao cliente e, apenas para admin, revelar a senha PFX mediante senha administrativa configurada no Supabase.
 
 ### Avisos
 
@@ -408,6 +412,7 @@ Crons usam `Authorization: Bearer {CRON_SECRET}` ou header `x-cron-secret`.
 - `POST /api/certificados/importar`
 - `GET/DELETE /api/certificados/[id]`
 - `POST/PATCH /api/certificados/[id]/link`
+- `POST /api/certificados/[id]/senha`
 - `POST /api/certificados/[id]/aviso`
 - `POST /api/download/[token]/validar`
 - `GET/PUT /api/notifications/settings`

@@ -82,6 +82,10 @@ export const publicDownloadPasswordSchema = z.object({
   senha_liberacao: z.string().trim().min(8).max(128),
 });
 
+export const revealCertificatePasswordSchema = z.object({
+  senha_admin: z.string().trim().min(8, "Informe a senha administrativa.").max(128, "Senha muito longa."),
+});
+
 export const configuracoesSistemaInputSchema = z.object({
   dias_aviso_vencimento: z
     .array(z.number().int().min(0).max(365))

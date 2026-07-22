@@ -11,6 +11,7 @@ import { SETTINGS_ID } from "@/lib/notifications/engine";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { formatCertificateTitle, formatCnpj, formatDate, formatDateTime, formatDisplayName, formatPhone } from "@/lib/utils/format";
 
+import { CertificatePasswordReveal } from "./certificate-password-reveal";
 import { ClientEditForm } from "./client-edit-form";
 import { DeleteCertificateButton } from "./delete-certificate-button";
 import { DownloadLinkManager } from "./download-link-manager";
@@ -118,6 +119,7 @@ export default async function CertificadoDetalhePage({ params }: CertificadoDeta
           }}
         />
       ) : null}
+      {user.role === "admin" ? <CertificatePasswordReveal certificadoId={id} /> : null}
       {user.role === "admin" ? <DownloadLinkManager certificadoId={id} initialLink={activeLink ?? null} /> : null}
       {user.role === "admin" ? <DeleteCertificateButton certificadoId={id} /> : null}
     </section>

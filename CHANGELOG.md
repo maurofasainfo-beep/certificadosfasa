@@ -2,6 +2,12 @@
 
 Todas as mudancas relevantes devem ser registradas aqui e refletidas tambem em `docs/SYSTEM_CONTEXT.md`.
 
+## 2026-07-22
+
+- Adicionado botao administrativo "Mostrar senha" no detalhe do certificado, com validacao de senha administrativa antes de revelar a senha PFX descriptografada.
+- Criada rota `POST /api/certificados/[id]/senha`, restrita a admin, com auditoria e sem gravar senha digitada ou senha PFX em logs.
+- Adicionada coluna `configuracoes_sistema.senha_admin_certificado_hash` e script `npm run security:hash-cert-admin-password` para gerar o hash a ser configurado no Supabase.
+
 ## 2026-07-16
 
 - Ajustado `POST /api/clientes` para reconstruir apenas os avisos futuros do cliente alterado, evitando que edicoes de telefone aguardem o rebuild global de todos os certificados.

@@ -128,12 +128,14 @@ export type Database = {
         Row: {
           id: string;
           dias_aviso_vencimento: number[];
+          senha_admin_certificado_hash: string | null;
           created_at: string;
           updated_at: string;
         };
         Insert: {
           id?: string;
           dias_aviso_vencimento?: number[];
+          senha_admin_certificado_hash?: string | null;
           created_at?: string;
           updated_at?: string;
         };

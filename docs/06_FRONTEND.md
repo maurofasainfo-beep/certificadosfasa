@@ -10,7 +10,7 @@ Documento especifico. A fonte oficial completa continua sendo [`SYSTEM_CONTEXT.m
 - `/certificados`: listagem de certificados.
 - `/certificados/novo`: upload individual.
 - `/certificados/importar`: importacao em massa.
-- `/certificados/[id]`: detalhe, link publico, edicao de cliente e aviso manual.
+- `/certificados/[id]`: detalhe, link publico, edicao de cliente, senha PFX sob autorizacao extra e aviso manual.
 - `/notificacoes`: eventos, destinatarios e status.
 - `/configuracoes`: configuracoes de avisos e templates.
 - `/whatsapp`: homologacao e monitoramento euAtendo.
@@ -29,7 +29,7 @@ Documento especifico. A fonte oficial completa continua sendo [`SYSTEM_CONTEXT.m
 - Telas internas usam Server Components quando possivel.
 - Componentes interativos ficam como Client Components locais.
 - Acoes sensiveis chamam APIs server-side.
-- Dados secretos nunca sao expostos ao browser.
+- Dados secretos nunca sao expostos ao browser, exceto a senha PFX revelada explicitamente para admin apos senha administrativa e auditoria.
 
 ## Refatoracao visual e UX
 
@@ -73,7 +73,7 @@ Atualizacao de 2026-07-15:
 
 ## Cuidados
 
-- Nao exibir senha real do PFX.
+- Nao exibir senha real do PFX fora da acao controlada "Mostrar senha" no detalhe do certificado.
 - Nao exibir `storage_path` utilizavel.
 - Nao expor token euAtendo ou service role.
 - Confirmar responsividade em tabelas e acoes compactas.

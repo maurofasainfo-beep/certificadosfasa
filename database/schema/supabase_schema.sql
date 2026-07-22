@@ -69,6 +69,7 @@ create table if not exists public.certificados (
 create table if not exists public.configuracoes_sistema (
   id uuid primary key default gen_random_uuid(),
   dias_aviso_vencimento int[] not null default array[30,15,7],
+  senha_admin_certificado_hash text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint configuracoes_sistema_singleton check (id = '00000000-0000-0000-0000-000000000001'::uuid),
@@ -77,6 +78,8 @@ create table if not exists public.configuracoes_sistema (
     and cardinality(dias_aviso_vencimento) between 1 and 10
   )
 );
+
+alter table public.configuracoes_sistema add column if not exists senha_admin_certificado_hash text;
 
 alter table public.configuracoes_sistema drop column if exists email_destino_alertas;
 alter table public.configuracoes_sistema drop column if exists smtp_host;
@@ -766,6 +769,7 @@ comment on table public.user_profiles is 'Perfis internos vinculados ao Supabase
 comment on table public.clientes is 'Clientes identificados por CNPJ normalizado, criados ou atualizados no upload do PFX.';
 comment on table public.certificados is 'Historico de certificados PFX, com senha criptografada por AES-256-GCM no backend.';
 comment on table public.configuracoes_sistema is 'Configuracoes operacionais globais sem e-mail; usada para limiares internos de vencimento.';
+comment on column public.configuracoes_sistema.senha_admin_certificado_hash is 'Hash scrypt da senha administrativa exigida para revelar a senha criptografada de um certificado PFX.';
 comment on table public.links_download is 'Links publicos de alta entropia. Token puro nao e armazenado; somente token_hash, senha_hash e metadados de uso unico.';
 comment on table public.audit_logs is 'Trilha de auditoria sem segredos: registra acoes sensiveis e metadados minimos.';
 comment on table public.storage_reconciliation_jobs is 'Fila administrativa de reconciliacao entre Postgres e Storage privado para uploads, exclusoes e verificacoes.';
