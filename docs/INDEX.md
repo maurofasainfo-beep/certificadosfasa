@@ -16,6 +16,7 @@
 - [`08_DEPLOY.md`](08_DEPLOY.md): deploy, variaveis e cron.
 - [`09_HISTORICO.md`](09_HISTORICO.md): historico tecnico consolidado.
 - [`10_REFERENCIA_TECNICA.md`](10_REFERENCIA_TECNICA.md): mapas rapidos de arquivos, endpoints e operacao.
+- [`PASSO_A_PASSO_MOSTRAR_SENHA_CERTIFICADO.md`](PASSO_A_PASSO_MOSTRAR_SENHA_CERTIFICADO.md): configuracao no Supabase para liberar o botao Mostrar senha.
 
 ## Banco de dados
 
