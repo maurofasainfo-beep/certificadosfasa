@@ -57,7 +57,7 @@ Estado local desta consolidacao: o codigo, migrations e documentacao foram reorg
 - Upload de PFX: frontend envia arquivo e senha, backend valida PFX, extrai dados, criptografa senha, grava Storage, registra banco por RPC e recalcula avisos.
 - Download publico: admin gera link e senha unica, banco guarda hashes, usuario informa senha, backend gera signed URL curta e invalida o link apos uso.
 - Avisos: engine planeja eventos em `notification_events`; dispatcher euAtendo reserva um evento por execucao, envia, registra sucesso/falha e aplica delay/retry.
-- Crons: Vercel chama endpoints protegidos por `CRON_SECRET`.
+- Crons: Vercel chama endpoints protegidos por `CRON_SECRET`; GitHub Actions pode chamar o dispatcher euAtendo a cada 5 minutos para escoar fila no mesmo dia sem Vercel Pro.
 
 ## Estrutura de pastas
 
@@ -286,7 +286,9 @@ O dispatcher aplica delay aleatorio entre `delay_minimo_segundos` e `delay_maxim
 
 ### Como envia
 
-Na Vercel Hobby, `GET /api/cron/euatendo-dispatch` esta configurado como cron diario (`20 13 * * *`, 10:20 em `America/Sao_Paulo`) porque a plataforma nao aceita frequencia maior nesse plano. Cada execucao processa no maximo 1 evento. Para enviar varias mensagens no mesmo dia, usar plano Pro ou cron externo chamando a rota com `CRON_SECRET` a cada 5 minutos durante a janela de envio.
+Na Vercel Hobby, `GET /api/cron/euatendo-dispatch` esta configurado como cron diario (`20 13 * * *`, 10:20 em `America/Sao_Paulo`) porque a plataforma nao aceita frequencia maior nesse plano. Cada execucao processa no maximo 1 evento.
+
+Para enviar varias mensagens no mesmo dia sem Vercel Pro, o repositorio inclui `.github/workflows/euatendo-dispatch-cron.yml`, agendado em `2-59/5 * * * *`. Esse workflow chama `POST /api/cron/euatendo-dispatch` com `CRON_SECRET`, processando 1 mensagem aproximadamente a cada 5 minutos quando houver fila.
 
 ## Configuracoes
 
@@ -428,6 +430,10 @@ Crons usam `Authorization: Bearer {CRON_SECRET}` ou header `x-cron-secret`.
 - `GET /api/admin/health/production`
 - `GET/POST /api/cron/certificados-vencimentos`
 - `GET/POST /api/cron/euatendo-dispatch`
+
+### Workflows GitHub Actions
+
+- `.github/workflows/euatendo-dispatch-cron.yml`: cron externo a cada 5 minutos para chamar o dispatcher euAtendo com `CRON_SECRET`.
 
 ### Jobs
 

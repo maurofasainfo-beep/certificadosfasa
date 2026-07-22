@@ -19,7 +19,9 @@ O projeto esta preparado para Vercel com Next.js.
 
 A Vercel usa timezone UTC nos cron jobs. `0 14 * * *` equivale a 11:00 em `America/Sao_Paulo`.
 
-Contas Hobby da Vercel aceitam apenas Cron Jobs diarios. Por isso o dispatcher euAtendo esta configurado como `20 13 * * *`, equivalente a 10:20 em `America/Sao_Paulo`. Em modo conservador, esse cron envia no maximo 1 mensagem e agenda a proxima permissao de envio para 180 a 300 segundos depois. Para escoar fila no mesmo dia, use plano Pro ou cron externo chamando `/api/cron/euatendo-dispatch` com `CRON_SECRET` a cada 5 minutos.
+Contas Hobby da Vercel aceitam apenas Cron Jobs diarios. Por isso o dispatcher euAtendo esta configurado como `20 13 * * *`, equivalente a 10:20 em `America/Sao_Paulo`. Em modo conservador, esse cron envia no maximo 1 mensagem e agenda a proxima permissao de envio para 180 a 300 segundos depois.
+
+Para escoar fila no mesmo dia sem Vercel Pro, o projeto inclui um cron externo por GitHub Actions em `.github/workflows/euatendo-dispatch-cron.yml`. Ele chama `/api/cron/euatendo-dispatch` a cada 5 minutos com `CRON_SECRET`, mantendo 1 mensagem por execucao. Veja [`CRON_EXTERNO_EUATENDO_5_MIN.md`](CRON_EXTERNO_EUATENDO_5_MIN.md).
 
 ## Variaveis obrigatorias
 
@@ -52,6 +54,14 @@ EUATENDO_DISPATCH_MAX_EVENTS_PER_RUN=1
 - `/api/cron/euatendo-dispatch`: agenda `20 13 * * *` em UTC por compatibilidade com Vercel Hobby, equivalente a 10:20 em `America/Sao_Paulo`; para fila recorrente, chamar externamente a cada 5 minutos com `CRON_SECRET`.
 
 Ambas as rotas aceitam `GET` para Vercel Cron e `POST` para execucao manual, sempre com `Authorization: Bearer {CRON_SECRET}`.
+
+## Cron externo GitHub Actions
+
+- Workflow: `.github/workflows/euatendo-dispatch-cron.yml`.
+- Agenda: `2-59/5 * * * *`.
+- Secret obrigatorio no GitHub: `CRON_SECRET`, com o mesmo valor da Vercel.
+- Variavel opcional: `CERTIFICADOSFASA_BASE_URL`, padrao `https://certificadosfasa-neon.vercel.app`.
+- Comportamento: cada execucao chama o dispatcher uma vez; o dispatcher envia no maximo 1 mensagem.
 
 ## Validacao recomendada
 

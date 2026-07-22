@@ -1,0 +1,44 @@
+name: euAtendo dispatcher cron
+
+on:
+  schedule:
+    - cron: "2-59/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: euatendo-dispatch-cron
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    name: Dispatch one queued WhatsApp message
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+      CERTIFICADOSFASA_BASE_URL: ${{ vars.CERTIFICADOSFASA_BASE_URL || 'https://certificadosfasa-neon.vercel.app' }}
+    steps:
+      - name: Validate required secret
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "Configure the CRON_SECRET repository secret before enabling this workflow."
+            exit 1
+          fi
+
+      - name: Call euAtendo dispatcher
+        run: |
+          set -euo pipefail
+          BASE_URL="${CERTIFICADOSFASA_BASE_URL%/}"
+          URL="$BASE_URL/api/cron/euatendo-dispatch"
+          HTTP_STATUS="$(curl --silent --show-error --output response.json --write-out "%{http_code}" --request POST "$URL" --header "Authorization: Bearer $CRON_SECRET")"
+
+          cat response.json
+          echo ""
+
+          if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 300 ]; then
+            echo "Dispatcher failed with HTTP $HTTP_STATUS."
+            exit 1
+          fi

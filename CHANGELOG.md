@@ -4,6 +4,8 @@ Todas as mudancas relevantes devem ser registradas aqui e refletidas tambem em `
 
 ## 2026-07-22
 
+- Adicionado workflow GitHub Actions `.github/workflows/euatendo-dispatch-cron.yml` para chamar o dispatcher euAtendo a cada 5 minutos, mantendo 1 mensagem por execucao.
+- Documentada a configuracao do cron externo em `docs/CRON_EXTERNO_EUATENDO_5_MIN.md`.
 - Adicionado botao administrativo "Mostrar senha" no detalhe do certificado, com validacao de senha administrativa antes de revelar a senha PFX descriptografada.
 - Criada rota `POST /api/certificados/[id]/senha`, restrita a admin, com auditoria e sem gravar senha digitada ou senha PFX em logs.
 - Adicionada coluna `configuracoes_sistema.senha_admin_certificado_hash` e script `npm run security:hash-cert-admin-password` para gerar o hash a ser configurado no Supabase.
